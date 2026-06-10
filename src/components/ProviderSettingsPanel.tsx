@@ -12,18 +12,20 @@ interface Props {
 const providers: Array<{ id: ProviderId; label: string }> = [
   { id: "openai", label: "OpenAI" },
   { id: "gemini", label: "Gemini" },
+  { id: "custom", label: "Custom" },
 ];
 
 export function ProviderSettingsPanel({ settings, onChange, onClose }: Props) {
   const activeModels = modelOptions.filter((model) => model.provider === settings.provider);
   const activeKey = settings.apiKeys[settings.provider];
   const activeModelId = settings.model[settings.provider];
+  const isCustom = settings.provider === "custom";
 
   return (
-    <section className="settings-drawer-content" aria-label="API 設定">
+    <section className="settings-drawer-content" aria-label="設定">
       <header className="drawer-header">
         <div className="drawer-title">
-          <h2>工作區設定</h2>
+          <h2>設定</h2>
           <p>調整 API 供應商、翻譯偏好與模型設定</p>
         </div>
         <button type="button" className="close-btn" onClick={onClose} title="關閉設定">
@@ -64,7 +66,7 @@ export function ProviderSettingsPanel({ settings, onChange, onClose }: Props) {
             <input
               type="password"
               value={activeKey}
-              placeholder={`${settings.provider === "openai" ? "OpenAI" : "Gemini"} API key`}
+              placeholder={`${isCustom ? "API Key (選填)" : settings.provider === "openai" ? "OpenAI" : "Gemini"} API key`}
               onChange={(event) =>
                 onChange({
                   ...settings,
@@ -85,37 +87,88 @@ export function ProviderSettingsPanel({ settings, onChange, onClose }: Props) {
           </div>
         </div>
 
-        {/* Section 2: Model Selector */}
-        <div className="settings-group">
-          <h3>模型選擇</h3>
-          <div className="select-container">
-            <select 
-              value={activeModelId} 
-              onChange={(event) => onChange({
-                ...settings,
-                model: {
-                  ...settings.model,
-                  [settings.provider]: event.target.value
-                }
-              })}
-            >
-              {activeModels.map((model) => (
-                <option key={model.id} value={model.id}>
-                  {model.tier} · {model.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="model-strip" aria-label="模型資訊">
-            {activeModels.map((model) => (
-              <span key={model.id} className={`model-pill ${activeModelId === model.id ? "active-pill" : ""}`} title={model.notes}>
-                {model.label}
-              </span>
-            ))}
-          </div>
-        </div>
+        {/* Section 2: Custom API Configuration */}
+        {isCustom && (
+          <div className="settings-group">
+            <h3>自訂 API 設定</h3>
+            
+            <div className="config-item">
+              <label>API Endpoint (端點 URL)</label>
+              <input 
+                type="text"
+                className="text-input"
+                style={{
+                  width: "100%",
+                  height: "42px",
+                  border: "1px solid var(--border-color)",
+                  borderRadius: "8px",
+                  padding: "0 12px",
+                  background: "var(--bg-secondary)",
+                  color: "var(--text-primary)",
+                  outline: "none"
+                }}
+                value={settings.customEndpoint}
+                placeholder="https://api.openai.com/v1/chat/completions"
+                onChange={(event) => onChange({ ...settings, customEndpoint: event.target.value })}
+              />
+            </div>
 
-        {/* Section 3: Translation Config */}
+            <div className="config-item" style={{ marginTop: "12px" }}>
+              <label>模型名稱 (Model Name)</label>
+              <input 
+                type="text"
+                className="text-input"
+                style={{
+                  width: "100%",
+                  height: "42px",
+                  border: "1px solid var(--border-color)",
+                  borderRadius: "8px",
+                  padding: "0 12px",
+                  background: "var(--bg-secondary)",
+                  color: "var(--text-primary)",
+                  outline: "none"
+                }}
+                value={settings.customModel}
+                placeholder="gpt-4o"
+                onChange={(event) => onChange({ ...settings, customModel: event.target.value })}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Section 3: Model Selector (for pre-defined API providers) */}
+        {!isCustom && (
+          <div className="settings-group">
+            <h3>模型選擇</h3>
+            <div className="select-container">
+              <select 
+                value={activeModelId} 
+                onChange={(event) => onChange({
+                  ...settings,
+                  model: {
+                    ...settings.model,
+                    [settings.provider]: event.target.value
+                  }
+                })}
+              >
+                {activeModels.map((model) => (
+                  <option key={model.id} value={model.id}>
+                    {model.tier} · {model.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="model-strip" aria-label="模型資訊">
+              {activeModels.map((model) => (
+                <span key={model.id} className={`model-pill ${activeModelId === model.id ? "active-pill" : ""}`} title={model.notes}>
+                  {model.label}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Section 4: Translation Config */}
         <div className="settings-group">
           <h3>翻譯模式與語氣</h3>
           
@@ -153,4 +206,5 @@ export function ProviderSettingsPanel({ settings, onChange, onClose }: Props) {
     </section>
   );
 }
+
 

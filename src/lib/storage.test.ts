@@ -31,7 +31,7 @@ describe("storage", () => {
       ...defaultProviderSettings,
       rememberKeys: true,
       provider: "gemini" as const,
-      model: { openai: "gpt-5.5", gemini: "gemini-2.5-flash" },
+      model: { openai: "gpt-5.5", gemini: "gemini-2.5-flash", custom: "my-model" },
       mode: "business" as const,
       tone: "formal" as const,
     };

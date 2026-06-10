@@ -1,4 +1,4 @@
-export type ProviderId = "openai" | "gemini";
+export type ProviderId = "openai" | "gemini" | "custom";
 
 export type TranslationMode = "precise" | "natural" | "business" | "casual";
 
@@ -35,7 +35,10 @@ export interface ProviderSettings {
   model: Record<ProviderId, string>; // 記錄各 provider 選用的 model
   mode: TranslationMode;
   tone: TranslationTone;
+  customEndpoint: string; // 自訂 API 端點
+  customModel: string;    // 自訂模型名稱
 }
+
 
 export interface TranslationPanelState {
   id: string;

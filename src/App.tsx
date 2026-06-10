@@ -77,7 +77,7 @@ export default function App() {
     patchPanel(panel.id, { status: "translating", error: undefined });
 
     try {
-      const activeModel = settings.model[settings.provider];
+      const activeModel = settings.provider === "custom" ? settings.customModel : settings.model[settings.provider];
       const output = await translateText({
         provider: settings.provider,
         apiKey: settings.apiKeys[settings.provider],
@@ -88,7 +88,9 @@ export default function App() {
         tone: settings.tone,
         text: panel.input,
         signal: controller.signal,
+        customEndpoint: settings.customEndpoint,
       });
+
 
       patchPanel(panel.id, {
         output,

@@ -7,14 +7,18 @@ export const defaultProviderSettings: ProviderSettings = {
   apiKeys: {
     openai: "",
     gemini: "",
+    custom: "",
   },
   rememberKeys: false,
   model: {
     openai: "gpt-5.4-nano",
     gemini: "gemini-2.5-flash-lite",
+    custom: "custom-model",
   },
   mode: "natural",
   tone: "neutral",
+  customEndpoint: "https://api.openai.com/v1/chat/completions",
+  customModel: "gpt-4o",
 };
 
 export function loadProviderSettings(storage: Storage | undefined = globalThis.localStorage): ProviderSettings {
@@ -25,15 +29,17 @@ export function loadProviderSettings(storage: Storage | undefined = globalThis.l
     if (!raw) return defaultProviderSettings;
     const parsed = JSON.parse(raw) as Partial<ProviderSettings>;
     return {
-      provider: parsed.provider === "gemini" ? "gemini" : "openai",
+      provider: (parsed.provider === "gemini" || parsed.provider === "custom") ? parsed.provider : "openai",
       apiKeys: {
         openai: typeof parsed.apiKeys?.openai === "string" ? parsed.apiKeys.openai : "",
         gemini: typeof parsed.apiKeys?.gemini === "string" ? parsed.apiKeys.gemini : "",
+        custom: typeof parsed.apiKeys?.custom === "string" ? parsed.apiKeys.custom : "",
       },
       rememberKeys: parsed.rememberKeys === true,
       model: {
         openai: typeof parsed.model?.openai === "string" ? parsed.model.openai : "gpt-5.4-nano",
         gemini: typeof parsed.model?.gemini === "string" ? parsed.model.gemini : "gemini-2.5-flash-lite",
+        custom: typeof parsed.model?.custom === "string" ? parsed.model.custom : "custom-model",
       },
       mode: (parsed.mode === "precise" || parsed.mode === "natural" || parsed.mode === "business" || parsed.mode === "casual") 
         ? parsed.mode 
@@ -41,11 +47,14 @@ export function loadProviderSettings(storage: Storage | undefined = globalThis.l
       tone: (parsed.tone === "neutral" || parsed.tone === "warm" || parsed.tone === "concise" || parsed.tone === "formal")
         ? parsed.tone
         : "neutral",
+      customEndpoint: typeof parsed.customEndpoint === "string" ? parsed.customEndpoint : "https://api.openai.com/v1/chat/completions",
+      customModel: typeof parsed.customModel === "string" ? parsed.customModel : "gpt-4o",
     };
   } catch {
     return defaultProviderSettings;
   }
 }
+
 
 export function saveProviderSettings(settings: ProviderSettings, storage: Storage | undefined = globalThis.localStorage) {
   if (!storage) return;

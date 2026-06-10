@@ -11,6 +11,7 @@ export interface TranslateRequest {
   tone: TranslationTone;
   text: string;
   signal?: AbortSignal;
+  customEndpoint?: string; // 選用自訂 API 端點
 }
 
 export class TranslationError extends Error {
@@ -36,6 +37,19 @@ export function buildOpenAiRequest(prompt: string, model: string) {
   };
 }
 
+export function buildCustomChatRequest(prompt: string, model: string) {
+  return {
+    model,
+    messages: [
+      {
+        role: "user",
+        content: prompt,
+      },
+    ],
+    temperature: 0.2,
+  };
+}
+
 export function buildGeminiRequest(prompt: string) {
   return {
     contents: [
@@ -51,7 +65,7 @@ export function buildGeminiRequest(prompt: string) {
 }
 
 export async function translateText(request: TranslateRequest) {
-  if (!request.apiKey.trim()) {
+  if (request.provider !== "custom" && !request.apiKey.trim()) {
     throw new TranslationError("請先設定目前供應商的 API key。");
   }
   if (!request.text.trim()) {
@@ -68,6 +82,10 @@ export async function translateText(request: TranslateRequest) {
 
   if (request.provider === "openai") {
     return translateWithOpenAi(prompt, request);
+  }
+
+  if (request.provider === "custom") {
+    return translateWithCustom(prompt, request);
   }
 
   return translateWithGemini(prompt, request);
@@ -96,6 +114,37 @@ async function translateWithOpenAi(prompt: string, request: TranslateRequest) {
 
   if (!outputText) {
     throw new TranslationError("OpenAI 回應中沒有可用的翻譯文字。", response.status);
+  }
+
+  return outputText.trim();
+}
+
+async function translateWithCustom(prompt: string, request: TranslateRequest) {
+  const endpoint = request.customEndpoint || "https://api.openai.com/v1/chat/completions";
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  
+  if (request.apiKey.trim()) {
+    headers["Authorization"] = `Bearer ${request.apiKey}`;
+  }
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(buildCustomChatRequest(prompt, request.model)),
+    signal: request.signal,
+  });
+
+  const payload = await readJson(response);
+  if (!response.ok) {
+    throw normalizeProviderError(payload, response.status);
+  }
+
+  // 標準 OpenAI chat completion 回傳格式
+  const outputText = payload.choices?.[0]?.message?.content || payload.output_text;
+  if (!outputText) {
+    throw new TranslationError("自訂 API 回應中沒有可用的翻譯文字(choices[0].message.content)。", response.status);
   }
 
   return outputText.trim();
@@ -161,3 +210,4 @@ function normalizeProviderError(payload: any, status: number) {
   }
   return new TranslationError("翻譯服務暫時無法完成請求。", status);
 }
+
