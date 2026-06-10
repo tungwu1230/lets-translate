@@ -1,25 +1,18 @@
-import { Plus } from "lucide-react";
+import { Plus, Settings2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ProviderSettingsPanel } from "./components/ProviderSettingsPanel";
 import { TranslationPanel } from "./components/TranslationPanel";
-import { estimateCostUsd } from "./lib/cost";
-import { getDefaultModel } from "./lib/models";
-import { saveProviderSettings, loadProviderSettings } from "./lib/storage";
+import { loadProviderSettings, saveProviderSettings } from "./lib/storage";
 import { translateText, TranslationError } from "./lib/provider";
 import type { ProviderSettings, TranslationPanelState } from "./lib/types";
 
 function createPanel(index: number, overrides: Partial<TranslationPanelState> = {}): TranslationPanelState {
   const isReplyPanel = index % 2 === 0;
-  const provider = overrides.provider ?? "openai";
   return {
     id: crypto.randomUUID(),
     title: isReplyPanel ? "回覆翻譯" : "閱讀翻譯",
-    provider,
-    model: overrides.model ?? getDefaultModel(provider),
     sourceLanguage: isReplyPanel ? "zh-Hant" : "en",
     targetLanguage: isReplyPanel ? "en" : "zh-Hant",
-    mode: "natural",
-    tone: "neutral",
     input: "",
     output: "",
     status: "idle",
@@ -30,6 +23,7 @@ function createPanel(index: number, overrides: Partial<TranslationPanelState> = 
 export default function App() {
   const [settings, setSettings] = useState<ProviderSettings>(() => loadProviderSettings());
   const [panels, setPanels] = useState<TranslationPanelState[]>(() => [createPanel(1), createPanel(2)]);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const abortControllers = useRef<Record<string, AbortController>>({});
 
   useEffect(() => {
@@ -38,8 +32,7 @@ export default function App() {
 
   const summary = useMemo(() => {
     const activeCount = panels.filter((panel) => panel.status === "translating").length;
-    const totalCost = panels.reduce((sum, panel) => sum + estimateCostUsd(panel.model, panel.input, panel.output), 0);
-    return { activeCount, totalCost };
+    return { activeCount };
   }, [panels]);
 
   function updatePanel(nextPanel: TranslationPanelState) {
@@ -53,7 +46,7 @@ export default function App() {
   }
 
   function addPanel() {
-    setPanels((current) => [...current, createPanel(current.length + 1, { provider: settings.provider })]);
+    setPanels((current) => [...current, createPanel(current.length + 1)]);
   }
 
   function duplicatePanel(panel: TranslationPanelState) {
@@ -81,14 +74,15 @@ export default function App() {
     patchPanel(panel.id, { status: "translating", error: undefined });
 
     try {
+      const activeModel = settings.model[settings.provider];
       const output = await translateText({
-        provider: panel.provider,
-        apiKey: settings.apiKeys[panel.provider],
-        model: panel.model,
+        provider: settings.provider,
+        apiKey: settings.apiKeys[settings.provider],
+        model: activeModel,
         sourceLanguage: panel.sourceLanguage,
         targetLanguage: panel.targetLanguage,
-        mode: panel.mode,
-        tone: panel.tone,
+        mode: settings.mode,
+        tone: settings.tone,
         text: panel.input,
         signal: controller.signal,
       });
@@ -96,7 +90,6 @@ export default function App() {
       patchPanel(panel.id, {
         output,
         status: "done",
-        lastEstimatedCost: estimateCostUsd(panel.model, panel.input, output),
       });
     } catch (error) {
       if (controller.signal.aborted) {
@@ -118,21 +111,65 @@ export default function App() {
     delete abortControllers.current[id];
   }
 
+  async function runAllTranslations() {
+    const idlePanels = panels.filter(p => p.input.trim() && p.status !== "translating");
+    await Promise.all(idlePanels.map(panel => runTranslation(panel)));
+  }
+
   return (
     <main className="app-shell">
-      <ProviderSettingsPanel settings={settings} onChange={setSettings} />
+      <header className="app-navbar">
+        <div className="brand-block">
+          <div className="mark">OT</div>
+          <div>
+            <h1>open-translate</h1>
+            <p>可並行、多面板的 LLM 翻譯工作區</p>
+          </div>
+        </div>
+
+        <div className="navbar-actions">
+          <button
+            type="button"
+            className={`icon-button settings-toggle-btn ${isSettingsOpen ? "active" : ""}`}
+            onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+            title="開啟設定"
+          >
+            <Settings2 size={20} aria-hidden="true" />
+          </button>
+        </div>
+      </header>
+
+      {isSettingsOpen && (
+        <div className="settings-overlay-wrapper">
+          <div className="settings-backdrop" onClick={() => setIsSettingsOpen(false)} />
+          <div className="settings-drawer">
+            <ProviderSettingsPanel 
+              settings={settings} 
+              onChange={setSettings} 
+              onClose={() => setIsSettingsOpen(false)} 
+            />
+          </div>
+        </div>
+      )}
 
       <section className="toolbar" aria-label="工作區狀態">
         <div>
           <h2>翻譯工作區</h2>
           <p>
-            {panels.length} 個面板 · {summary.activeCount} 個執行中 · 預估總成本約 ${summary.totalCost.toFixed(4)}
+            {panels.length} 個面板 · {summary.activeCount} 個執行中
           </p>
         </div>
-        <button type="button" className="add-button" onClick={addPanel}>
-          <Plus size={18} aria-hidden="true" />
-          新增面板
-        </button>
+        <div className="toolbar-actions">
+          {panels.some(p => p.input.trim() && p.status !== "translating") && (
+            <button type="button" className="ghost-button translate-all-btn" onClick={runAllTranslations}>
+              翻譯全部面板
+            </button>
+          )}
+          <button type="button" className="add-button" onClick={addPanel}>
+            <Plus size={18} aria-hidden="true" />
+            新增面板
+          </button>
+        </div>
       </section>
 
       <section className="panel-grid" aria-label="翻譯面板">
@@ -152,3 +189,4 @@ export default function App() {
     </main>
   );
 }
+

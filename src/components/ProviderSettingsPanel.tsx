@@ -1,11 +1,12 @@
-import { KeyRound, ShieldCheck } from "lucide-react";
-import { modelOptions } from "../lib/models";
+import { KeyRound, ShieldCheck, X } from "lucide-react";
+import { modelOptions, modeOptions, toneOptions } from "../lib/models";
 import { maskApiKey } from "../lib/storage";
-import type { ProviderId, ProviderSettings } from "../lib/types";
+import type { ProviderId, ProviderSettings, TranslationMode, TranslationTone } from "../lib/types";
 
 interface Props {
   settings: ProviderSettings;
   onChange: (settings: ProviderSettings) => void;
+  onClose: () => void;
 }
 
 const providers: Array<{ id: ProviderId; label: string }> = [
@@ -13,33 +14,49 @@ const providers: Array<{ id: ProviderId; label: string }> = [
   { id: "gemini", label: "Gemini" },
 ];
 
-export function ProviderSettingsPanel({ settings, onChange }: Props) {
+export function ProviderSettingsPanel({ settings, onChange, onClose }: Props) {
   const activeModels = modelOptions.filter((model) => model.provider === settings.provider);
   const activeKey = settings.apiKeys[settings.provider];
+  const activeModelId = settings.model[settings.provider];
 
   return (
-    <section className="settings-band" aria-label="API 設定">
-      <div className="settings-main">
-        <div className="brand-block">
-          <div className="mark">OT</div>
-          <div>
-            <h1>open-translate</h1>
-            <p>可並行、多面板的 LLM 翻譯工作區</p>
-          </div>
+    <section className="settings-drawer-content" aria-label="API 設定">
+      <header className="drawer-header">
+        <div className="drawer-title">
+          <h2>工作區設定</h2>
+          <p>調整 API 供應商、翻譯偏好與模型設定</p>
         </div>
+        <button type="button" className="close-btn" onClick={onClose} title="關閉設定">
+          <X size={20} aria-hidden="true" />
+        </button>
+      </header>
 
-        <div className="provider-controls">
-          <div className="segmented" role="tablist" aria-label="API 供應商">
-            {providers.map((provider) => (
-              <button
-                type="button"
-                key={provider.id}
-                className={settings.provider === provider.id ? "active" : ""}
-                onClick={() => onChange({ ...settings, provider: provider.id })}
-              >
-                {provider.label}
-              </button>
-            ))}
+      <div className="drawer-body">
+        {/* Section 1: API Provider & Key */}
+        <div className="settings-group">
+          <h3>API 供應商</h3>
+          <div className="provider-row">
+            <div className="segmented" role="tablist" aria-label="API 供應商">
+              {providers.map((provider) => (
+                <button
+                  type="button"
+                  key={provider.id}
+                  className={settings.provider === provider.id ? "active" : ""}
+                  onClick={() => onChange({ ...settings, provider: provider.id })}
+                >
+                  {provider.label}
+                </button>
+              ))}
+            </div>
+
+            <label className="remember-toggle">
+              <input
+                type="checkbox"
+                checked={settings.rememberKeys}
+                onChange={(event) => onChange({ ...settings, rememberKeys: event.target.checked })}
+              />
+              記住金鑰
+            </label>
           </div>
 
           <label className="key-field">
@@ -59,33 +76,81 @@ export function ProviderSettingsPanel({ settings, onChange }: Props) {
               }
             />
           </label>
-
-          <label className="remember-toggle">
-            <input
-              type="checkbox"
-              checked={settings.rememberKeys}
-              onChange={(event) => onChange({ ...settings, rememberKeys: event.target.checked })}
-            />
-            記住金鑰
-          </label>
-        </div>
-      </div>
-
-      <div className="settings-meta">
-        <div className="security-note">
-          <ShieldCheck size={18} aria-hidden="true" />
-          <span>
-            API key 只會從瀏覽器直接送到供應商。{settings.rememberKeys ? `目前會儲存在此瀏覽器：${maskApiKey(activeKey)}` : "預設只保留在目前工作階段。"}
-          </span>
-        </div>
-        <div className="model-strip" aria-label="模型候選">
-          {activeModels.map((model) => (
-            <span key={model.id} className="model-pill" title={model.notes}>
-              {model.tier} · {model.label} · ${model.inputUsdPerMillion}/M in · ${model.outputUsdPerMillion}/M out
+          
+          <div className="security-note">
+            <ShieldCheck size={16} aria-hidden="true" />
+            <span>
+              API key 只會儲存在此瀏覽器中：{maskApiKey(activeKey) || "尚未輸入"}
             </span>
-          ))}
+          </div>
+        </div>
+
+        {/* Section 2: Model Selector */}
+        <div className="settings-group">
+          <h3>模型選擇</h3>
+          <div className="select-container">
+            <select 
+              value={activeModelId} 
+              onChange={(event) => onChange({
+                ...settings,
+                model: {
+                  ...settings.model,
+                  [settings.provider]: event.target.value
+                }
+              })}
+            >
+              {activeModels.map((model) => (
+                <option key={model.id} value={model.id}>
+                  {model.tier} · {model.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="model-strip" aria-label="模型資訊">
+            {activeModels.map((model) => (
+              <span key={model.id} className={`model-pill ${activeModelId === model.id ? "active-pill" : ""}`} title={model.notes}>
+                {model.label}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* Section 3: Translation Config */}
+        <div className="settings-group">
+          <h3>翻譯模式與語氣</h3>
+          
+          <div className="config-grid">
+            <div className="config-item">
+              <label>翻譯風格</label>
+              <select 
+                value={settings.mode} 
+                onChange={(event) => onChange({ ...settings, mode: event.target.value as TranslationMode })}
+              >
+                {modeOptions.map((mode) => (
+                  <option key={mode.id} value={mode.id}>
+                    {mode.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="config-item">
+              <label>翻譯語氣</label>
+              <select 
+                value={settings.tone} 
+                onChange={(event) => onChange({ ...settings, tone: event.target.value as TranslationTone })}
+              >
+                {toneOptions.map((tone) => (
+                  <option key={tone.id} value={tone.id}>
+                    {tone.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
         </div>
       </div>
     </section>
   );
 }
+

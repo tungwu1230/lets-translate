@@ -8,20 +8,12 @@ import {
   Square,
   Trash2,
 } from "lucide-react";
-import { estimateCostUsd, formatUsd } from "../lib/cost";
 import {
-  getDefaultModel,
-  getModelsForProvider,
   languageOptions,
-  modeOptions,
-  toneOptions,
 } from "../lib/models";
 import type {
   LanguageCode,
-  ProviderId,
-  TranslationMode,
   TranslationPanelState,
-  TranslationTone,
 } from "../lib/types";
 
 interface Props {
@@ -43,16 +35,10 @@ export function TranslationPanel({
   onDelete,
   canDelete,
 }: Props) {
-  const providerModels = getModelsForProvider(panel.provider);
-  const estimatedCost = estimateCostUsd(panel.model, panel.input, panel.output);
   const isTranslating = panel.status === "translating";
 
   function patch(next: Partial<TranslationPanelState>) {
     onChange({ ...panel, ...next });
-  }
-
-  function changeProvider(provider: ProviderId) {
-    patch({ provider, model: getDefaultModel(provider) });
   }
 
   function swapLanguages() {
@@ -101,37 +87,6 @@ export function TranslationPanel({
         </div>
       </header>
 
-      <div className="panel-controls">
-        <select value={panel.provider} onChange={(event) => changeProvider(event.target.value as ProviderId)}>
-          <option value="openai">OpenAI</option>
-          <option value="gemini">Gemini</option>
-        </select>
-
-        <select value={panel.model} onChange={(event) => patch({ model: event.target.value })}>
-          {providerModels.map((model) => (
-            <option key={model.id} value={model.id}>
-              {model.tier} · {model.label}
-            </option>
-          ))}
-        </select>
-
-        <select value={panel.mode} onChange={(event) => patch({ mode: event.target.value as TranslationMode })}>
-          {modeOptions.map((mode) => (
-            <option key={mode.id} value={mode.id}>
-              {mode.label}
-            </option>
-          ))}
-        </select>
-
-        <select value={panel.tone} onChange={(event) => patch({ tone: event.target.value as TranslationTone })}>
-          {toneOptions.map((tone) => (
-            <option key={tone.id} value={tone.id}>
-              {tone.label}
-            </option>
-          ))}
-        </select>
-      </div>
-
       <div className="language-row">
         <select
           value={panel.sourceLanguage}
@@ -162,7 +117,7 @@ export function TranslationPanel({
 
       <div className="editor-grid">
         <label className="text-box">
-          <span>原文</span>
+          <span className="editor-label">原文</span>
           <textarea
             value={panel.input}
             placeholder="貼上或輸入要翻譯的內容..."
@@ -171,7 +126,7 @@ export function TranslationPanel({
         </label>
 
         <label className="text-box output">
-          <span>譯文</span>
+          <span className="editor-label">譯文</span>
           <textarea value={panel.output} placeholder="翻譯結果會出現在這裡" readOnly />
         </label>
       </div>
@@ -179,7 +134,10 @@ export function TranslationPanel({
       {panel.error ? <div className="panel-error">{panel.error}</div> : null}
 
       <footer className="panel-footer">
-        <div className="cost-line">估算 {formatUsd(estimatedCost)} · 實際費用依供應商帳單為準</div>
+        <div className="status-indicator">
+          {panel.status === "done" && <span className="status-tag done">翻譯完成</span>}
+          {panel.status === "error" && <span className="status-tag error">錯誤</span>}
+        </div>
         <div className="action-row">
           <button type="button" className="ghost-button" onClick={() => patch({ input: "", output: "", status: "idle", error: undefined })}>
             <Eraser size={17} aria-hidden="true" />
@@ -212,3 +170,4 @@ export function TranslationPanel({
     </article>
   );
 }
+

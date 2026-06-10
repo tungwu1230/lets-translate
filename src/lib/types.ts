@@ -31,20 +31,20 @@ export interface ProviderSettings {
   provider: ProviderId;
   apiKeys: Record<ProviderId, string>;
   rememberKeys: boolean;
+  // 全局翻譯設定
+  model: Record<ProviderId, string>; // 記錄各 provider 選用的 model
+  mode: TranslationMode;
+  tone: TranslationTone;
 }
 
 export interface TranslationPanelState {
   id: string;
   title: string;
-  provider: ProviderId;
-  model: string;
   sourceLanguage: LanguageCode;
   targetLanguage: LanguageCode;
-  mode: TranslationMode;
-  tone: TranslationTone;
   input: string;
   output: string;
   status: TranslationStatus;
   error?: string;
-  lastEstimatedCost?: number;
 }
+

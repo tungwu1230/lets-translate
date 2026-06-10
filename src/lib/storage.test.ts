@@ -16,7 +16,7 @@ function createStorage() {
 }
 
 describe("storage", () => {
-  it("does not persist keys when rememberKeys is false", () => {
+  it("does not persist keys and settings when rememberKeys is false", () => {
     const storage = createStorage();
     saveProviderSettings(
       updateProviderKey({ ...defaultProviderSettings, rememberKeys: false }, "openai", "sk-test"),
@@ -25,12 +25,25 @@ describe("storage", () => {
     expect(loadProviderSettings(storage).apiKeys.openai).toBe("");
   });
 
-  it("persists keys when rememberKeys is true", () => {
+  it("persists keys and settings when rememberKeys is true", () => {
     const storage = createStorage();
-    saveProviderSettings(
-      updateProviderKey({ ...defaultProviderSettings, rememberKeys: true }, "gemini", "gm-test"),
-      storage,
-    );
-    expect(loadProviderSettings(storage).apiKeys.gemini).toBe("gm-test");
+    const settings = {
+      ...defaultProviderSettings,
+      rememberKeys: true,
+      provider: "gemini" as const,
+      model: { openai: "gpt-5.5", gemini: "gemini-2.5-flash" },
+      mode: "business" as const,
+      tone: "formal" as const,
+    };
+    saveProviderSettings(settings, storage);
+    
+    const loaded = loadProviderSettings(storage);
+    expect(loaded.rememberKeys).toBe(true);
+    expect(loaded.provider).toBe("gemini");
+    expect(loaded.model.openai).toBe("gpt-5.5");
+    expect(loaded.model.gemini).toBe("gemini-2.5-flash");
+    expect(loaded.mode).toBe("business");
+    expect(loaded.tone).toBe("formal");
   });
 });
+

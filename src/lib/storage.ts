@@ -1,4 +1,4 @@
-import type { ProviderId, ProviderSettings } from "./types";
+import type { ProviderId, ProviderSettings, TranslationMode, TranslationTone } from "./types";
 
 const STORAGE_KEY = "open-translate.provider-settings";
 
@@ -9,6 +9,12 @@ export const defaultProviderSettings: ProviderSettings = {
     gemini: "",
   },
   rememberKeys: false,
+  model: {
+    openai: "gpt-5.4-nano",
+    gemini: "gemini-2.5-flash-lite",
+  },
+  mode: "natural",
+  tone: "neutral",
 };
 
 export function loadProviderSettings(storage: Storage | undefined = globalThis.localStorage): ProviderSettings {
@@ -25,6 +31,16 @@ export function loadProviderSettings(storage: Storage | undefined = globalThis.l
         gemini: typeof parsed.apiKeys?.gemini === "string" ? parsed.apiKeys.gemini : "",
       },
       rememberKeys: parsed.rememberKeys === true,
+      model: {
+        openai: typeof parsed.model?.openai === "string" ? parsed.model.openai : "gpt-5.4-nano",
+        gemini: typeof parsed.model?.gemini === "string" ? parsed.model.gemini : "gemini-2.5-flash-lite",
+      },
+      mode: (parsed.mode === "precise" || parsed.mode === "natural" || parsed.mode === "business" || parsed.mode === "casual") 
+        ? parsed.mode 
+        : "natural",
+      tone: (parsed.tone === "neutral" || parsed.tone === "warm" || parsed.tone === "concise" || parsed.tone === "formal")
+        ? parsed.tone
+        : "neutral",
     };
   } catch {
     return defaultProviderSettings;
@@ -57,3 +73,4 @@ export function updateProviderKey(settings: ProviderSettings, provider: Provider
     },
   };
 }
+
