@@ -535,7 +535,12 @@ select:focus {
 .swap {
   height: 38px;
   width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
 }
+
 
 /* Text Editors */
 .editor-grid {

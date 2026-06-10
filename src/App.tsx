@@ -123,7 +123,7 @@ export default function App() {
           <div className="mark">OT</div>
           <div>
             <h1>open-translate</h1>
-            <p>可並行、多面板的 LLM 翻譯工作區</p>
+            <p>可並行、多面板的 LLM 翻譯工具</p>
           </div>
         </div>
 
@@ -154,11 +154,12 @@ export default function App() {
 
       <section className="toolbar" aria-label="工作區狀態">
         <div>
-          <h2>翻譯工作區</h2>
+          <h2>翻譯面板對照</h2>
           <p>
             {panels.length} 個面板 · {summary.activeCount} 個執行中
           </p>
         </div>
+
         <div className="toolbar-actions">
           {panels.some(p => p.input.trim() && p.status !== "translating") && (
             <button type="button" className="ghost-button translate-all-btn" onClick={runAllTranslations}>

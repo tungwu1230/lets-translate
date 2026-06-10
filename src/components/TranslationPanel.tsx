@@ -1,6 +1,7 @@
 import {
   ArrowLeftRight,
   Copy,
+  CopyPlus,
   Eraser,
   Loader2,
   Play,
@@ -73,7 +74,7 @@ export function TranslationPanel({
         />
         <div className="icon-row">
           <button type="button" className="icon-button" onClick={onDuplicate} title="複製面板">
-            <Copy size={17} aria-hidden="true" />
+            <CopyPlus size={17} aria-hidden="true" />
           </button>
           <button
             type="button"
@@ -86,6 +87,7 @@ export function TranslationPanel({
           </button>
         </div>
       </header>
+
 
       <div className="language-row">
         <select
