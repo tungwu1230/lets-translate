@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wireframe 2: 卡片懸浮三欄佈局 (Floating Multi-Column Layout)</title>
+  <style>
+    :root {
+      --bg: #f3f4f6;
+      --border: #e5e7eb;
+      --text: #374151;
+      --text-muted: #9ca3af;
+      --primary: #10b981;
+      --panel-bg: #ffffff;
+    }
+
+    body {
+      margin: 0;
+      padding: 40px 20px;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      border-bottom: 2px dashed var(--border);
+      padding-bottom: 20px;
+    }
+
+    .header-info h1 {
+      font-size: 22px;
+      margin: 0 0 5px 0;
+      color: #111827;
+    }
+
+    .header-info p {
+      margin: 0;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .setting-btn {
+      padding: 8px 16px;
+      border: 1px solid var(--border);
+      background: var(--panel-bg);
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    /* Floating Global Lang bar */
+    .global-lang-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      background: var(--panel-bg);
+      border: 1.5px solid #d1d5db;
+      border-radius: 10px;
+      padding: 10px 24px;
+      margin-bottom: 28px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+    }
+
+    .lang-label {
+      font-weight: 600;
+      padding: 6px 14px;
+      background: #f3f4f6;
+      border-radius: 6px;
+      border: 1px dashed var(--text-muted);
+    }
+
+    .swap-icon {
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .btn-compare {
+      margin-left: auto;
+      padding: 8px 14px;
+      background: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* Multi-Card Column Grid */
+    .card-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr; /* Original vs output card split */
+      gap: 20px;
+      align-items: start;
+    }
+
+    /* In Compare Mode: grid-template-columns: 1fr 1fr 1fr; (Optionally) */
+
+    .wireframe-card {
+      background: var(--panel-bg);
+      border: 1.5px solid #d1d5db;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+      padding: 20px;
+      min-height: 320px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .card-tag {
+      font-size: 11px;
+      font-weight: bold;
+      text-transform: uppercase;
+      background: #f3f4f6;
+      color: #4b5563;
+      padding: 3px 8px;
+      border-radius: 4px;
+    }
+
+    .card-actions-top {
+      display: flex;
+      gap: 6px;
+    }
+
+    .tiny-btn {
+      padding: 4px 8px;
+      font-size: 11px;
+      border: 1px solid var(--border);
+      background: white;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    textarea {
+      flex: 1;
+      border: none;
+      resize: none;
+      outline: none;
+      font-size: 15.5px;
+      line-height: 1.6;
+      padding: 8px 0;
+    }
+
+    /* Card Footer Actions */
+    .card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 15px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+
+    .btn-action-main {
+      padding: 8px 20px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn-action-ghost {
+      padding: 6px 12px;
+      border: 1px solid var(--border);
+      background: white;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    /* Nested grid for output when comparing */
+    .compare-outputs {
+      display: grid;
+      grid-template-columns: 1fr; /* Defaults to single output */
+      gap: 16px;
+    }
+
+    /* Class when compare is active:
+       .card-grid { grid-template-columns: 1fr 1fr; }
+       .compare-outputs { grid-template-columns: 1fr 1fr; }
+    */
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="header-info">
+        <h1>open-translate [Wireframe 2]</h1>
+        <p>排版：卡片懸浮三欄佈局 (獨立的原文與譯文卡片，開對照時展開譯文列，原文維持一份)</p>
+      </div>
+      <button class="setting-btn">⚙️ 設定</button>
+    </header>
+
+    <!-- Global language controls above panels -->
+    <div class="global-lang-bar">
+      <div class="lang-label">英文 (自動偵測)</div>
+      <div class="swap-icon">⇄</div>
+      <div class="lang-label">繁體中文</div>
+      <button class="btn-compare">⇄ 開啟譯文對比</button>
+    </div>
+
+    <!-- Layout Grid -->
+    <div class="card-grid">
+      <!-- 1. Source Text Input Card (Only 1 card ever) -->
+      <div class="wireframe-card">
+        <div class="card-header">
+          <span class="card-tag">原文輸入</span>
+          <div class="card-actions-top">
+            <button class="tiny-btn">🧹 清空</button>
+          </div>
+        </div>
+        <textarea placeholder="貼上或輸入要翻譯的內容..."></textarea>
+        <div class="card-footer">
+          <span style="font-size: 12px; color: var(--text-muted);">0 個字</span>
+          <button class="btn-action-main">翻譯</button>
+        </div>
+      </div>
+
+      <!-- 2. Target Text Output Container (Can expand to multiple side-by-side) -->
+      <div class="compare-outputs">
+        <div class="wireframe-card">
+          <div class="card-header">
+            <span class="card-tag">譯文結果 (GPT-5.4 Nano)</span>
+            <div class="card-actions-top">
+              <button class="tiny-btn">📋 複製</button>
+            </div>
+          </div>
+          <textarea placeholder="翻譯結果會出現在這裡..." readonly></textarea>
+          <div class="card-footer">
+            <span style="font-size: 11px; color: var(--text-muted);">實際費用依供應商為準</span>
+            <button class="btn-action-ghost">複製譯文</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
