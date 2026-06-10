@@ -25,6 +25,7 @@ interface Props {
   onDuplicate: () => void;
   onDelete: () => void;
   canDelete: boolean;
+  isCompareMode: boolean;
 }
 
 export function TranslationPanel({
@@ -35,6 +36,7 @@ export function TranslationPanel({
   onDuplicate,
   onDelete,
   canDelete,
+  isCompareMode,
 }: Props) {
   const isTranslating = panel.status === "translating";
 
@@ -65,28 +67,31 @@ export function TranslationPanel({
 
   return (
     <article className="translation-panel">
-      <header className="panel-header">
-        <input
-          className="panel-title"
-          value={panel.title}
-          onChange={(event) => patch({ title: event.target.value })}
-          aria-label="面板名稱"
-        />
-        <div className="icon-row">
-          <button type="button" className="icon-button" onClick={onDuplicate} title="複製面板">
-            <CopyPlus size={17} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            className="icon-button danger"
-            onClick={onDelete}
-            disabled={!canDelete}
-            title="刪除面板"
-          >
-            <Trash2 size={17} aria-hidden="true" />
-          </button>
-        </div>
-      </header>
+      {isCompareMode && (
+        <header className="panel-header">
+          <input
+            className="panel-title"
+            value={panel.title}
+            onChange={(event) => patch({ title: event.target.value })}
+            aria-label="面板名稱"
+          />
+          <div className="icon-row">
+            <button type="button" className="icon-button" onClick={onDuplicate} title="複製面板">
+              <CopyPlus size={17} aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              className="icon-button danger"
+              onClick={onDelete}
+              disabled={!canDelete}
+              title="刪除面板"
+            >
+              <Trash2 size={17} aria-hidden="true" />
+            </button>
+          </div>
+        </header>
+      )}
+
 
 
       <div className="language-row">

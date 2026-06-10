@@ -22,7 +22,7 @@ function createPanel(index: number, overrides: Partial<TranslationPanelState> = 
 
 export default function App() {
   const [settings, setSettings] = useState<ProviderSettings>(() => loadProviderSettings());
-  const [panels, setPanels] = useState<TranslationPanelState[]>(() => [createPanel(1), createPanel(2)]);
+  const [panels, setPanels] = useState<TranslationPanelState[]>(() => [createPanel(1)]);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const abortControllers = useRef<Record<string, AbortController>>({});
 
@@ -34,6 +34,8 @@ export default function App() {
     const activeCount = panels.filter((panel) => panel.status === "translating").length;
     return { activeCount };
   }, [panels]);
+
+  const isCompareMode = panels.length > 1;
 
   function updatePanel(nextPanel: TranslationPanelState) {
     setPanels((current) => current.map((panel) => (panel.id === nextPanel.id ? nextPanel : panel)));
@@ -66,6 +68,7 @@ export default function App() {
     cancelTranslation(id);
     setPanels((current) => (current.length > 1 ? current.filter((panel) => panel.id !== id) : current));
   }
+
 
   async function runTranslation(panel: TranslationPanelState) {
     cancelTranslation(panel.id);
@@ -152,28 +155,31 @@ export default function App() {
         </div>
       )}
 
-      <section className="toolbar" aria-label="工作區狀態">
+      <section className="toolbar" aria-label="工具列狀態">
         <div>
-          <h2>翻譯面板對照</h2>
+          <h2>{isCompareMode ? "翻譯面板對照" : "翻譯工具"}</h2>
           <p>
-            {panels.length} 個面板 · {summary.activeCount} 個執行中
+            {isCompareMode 
+              ? `${panels.length} 個面板 · ${summary.activeCount} 個執行中`
+              : summary.activeCount > 0 ? "翻譯中..." : "輸入文字即可開始翻譯"
+            }
           </p>
         </div>
 
         <div className="toolbar-actions">
-          {panels.some(p => p.input.trim() && p.status !== "translating") && (
+          {isCompareMode && panels.some(p => p.input.trim() && p.status !== "translating") && (
             <button type="button" className="ghost-button translate-all-btn" onClick={runAllTranslations}>
               翻譯全部面板
             </button>
           )}
           <button type="button" className="add-button" onClick={addPanel}>
             <Plus size={18} aria-hidden="true" />
-            新增面板
+            {isCompareMode ? "新增對照面板" : "開啟對照翻譯"}
           </button>
         </div>
       </section>
 
-      <section className="panel-grid" aria-label="翻譯面板">
+      <section className={`panel-grid ${isCompareMode ? "compare-grid" : "single-grid"}`} aria-label="翻譯面板">
         {panels.map((panel) => (
           <TranslationPanel
             key={panel.id}
@@ -184,10 +190,12 @@ export default function App() {
             onDuplicate={() => duplicatePanel(panel)}
             onDelete={() => deletePanel(panel.id)}
             canDelete={panels.length > 1}
+            isCompareMode={isCompareMode}
           />
         ))}
       </section>
     </main>
   );
 }
+
 
