@@ -15,7 +15,9 @@ export type LanguageCode =
   | "ko"
   | "fr"
   | "de"
-  | "es";
+  | "es"
+  | (string & {}); // 允許任意自訂語言字串
+
 
 export interface ModelOption {
   id: string;

@@ -50,6 +50,11 @@ export function LanguageSelector({ value, onChange, excludeAuto = false }: Props
     setIsOpen(false);
   }
 
+  // Check if search query matches any exact label (case insensitive)
+  const hasExactMatch = options.some(
+    (lang) => lang.label.toLowerCase() === searchQuery.trim().toLowerCase()
+  );
+
   return (
     <div className="custom-select-container" ref={containerRef}>
       {isOpen ? (
@@ -63,18 +68,36 @@ export function LanguageSelector({ value, onChange, excludeAuto = false }: Props
             placeholder="搜尋語言..."
           />
           <div className="custom-select-dropdown">
-            {filteredOptions.length > 0 ? (
-              filteredOptions.map((lang) => (
-                <button
-                  type="button"
-                  key={lang.code}
-                  className={`custom-select-option ${lang.code === value ? "active" : ""}`}
-                  onClick={() => handleSelect(lang.code)}
-                >
-                  {lang.label}
-                </button>
-              ))
-            ) : (
+            {filteredOptions.map((lang) => (
+              <button
+                type="button"
+                key={lang.code}
+                className={`custom-select-option ${lang.code === value ? "active" : ""}`}
+                onClick={() => handleSelect(lang.code)}
+              >
+                {lang.label}
+              </button>
+            ))}
+            
+            {/* 動態新增自訂語言的按鈕 */}
+            {searchQuery.trim() && !hasExactMatch && (
+              <button
+                type="button"
+                className="custom-select-option custom-add-btn"
+                style={{
+                  borderTop: "1px dashed var(--border-color)",
+                  color: "var(--accent-color)",
+                  fontWeight: "bold",
+                  marginTop: "4px",
+                  paddingTop: "10px"
+                }}
+                onClick={() => handleSelect(searchQuery.trim())}
+              >
+                ✨ 使用自訂語言：「{searchQuery.trim()}」
+              </button>
+            )}
+
+            {filteredOptions.length === 0 && !searchQuery.trim() && (
               <div className="custom-select-no-results">無相符語言</div>
             )}
           </div>
@@ -91,3 +114,4 @@ export function LanguageSelector({ value, onChange, excludeAuto = false }: Props
     </div>
   );
 }
+
