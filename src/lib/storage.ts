@@ -1,4 +1,4 @@
-import type { ProviderId, ProviderSettings, TranslationMode, TranslationTone } from "./types";
+import type { FavoritePair, ProviderId, ProviderSettings, TranslationMode, TranslationTone } from "./types";
 
 const STORAGE_KEY = "open-translate.provider-settings";
 
@@ -81,5 +81,29 @@ export function updateProviderKey(settings: ProviderSettings, provider: Provider
       [provider]: apiKey,
     },
   };
+}
+
+const FAVORITES_KEY = "open-translate.favorite-pairs";
+
+export const defaultFavoritePairs: FavoritePair[] = [
+  { id: "1", sourceLanguage: "zh-Hant", targetLanguage: "en" },
+  { id: "2", sourceLanguage: "en", targetLanguage: "zh-Hant" },
+  { id: "3", sourceLanguage: "ja", targetLanguage: "zh-Hant" },
+];
+
+export function loadFavoritePairs(storage: Storage | undefined = globalThis.localStorage): FavoritePair[] {
+  if (!storage) return defaultFavoritePairs;
+  try {
+    const raw = storage.getItem(FAVORITES_KEY);
+    if (!raw) return defaultFavoritePairs;
+    return JSON.parse(raw) as FavoritePair[];
+  } catch {
+    return defaultFavoritePairs;
+  }
+}
+
+export function saveFavoritePairs(pairs: FavoritePair[], storage: Storage | undefined = globalThis.localStorage) {
+  if (!storage) return;
+  storage.setItem(FAVORITES_KEY, JSON.stringify(pairs));
 }
 

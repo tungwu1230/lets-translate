@@ -6,13 +6,15 @@ import {
   Play,
   RefreshCw,
   Square,
+  Star,
   X,
 } from "lucide-react";
 import {
   languageOptions,
+  getLanguageLabel,
 } from "../lib/models";
 import { LanguageSelector } from "./LanguageSelector";
-import type { TranslationPanelState } from "../lib/types";
+import type { TranslationPanelState, FavoritePair, LanguageCode } from "../lib/types";
 
 interface Props {
   panel: TranslationPanelState;
@@ -21,6 +23,8 @@ interface Props {
   onCancel: () => void;
   onDelete: () => void;
   canDelete: boolean;
+  favoritePairs: FavoritePair[];
+  onToggleFavorite: (source: LanguageCode, target: LanguageCode) => void;
 }
 
 
@@ -31,6 +35,8 @@ export function TranslationPanel({
   onCancel,
   onDelete,
   canDelete,
+  favoritePairs,
+  onToggleFavorite,
 }: Props) {
   const isTranslating = panel.status === "translating";
 
@@ -58,6 +64,10 @@ export function TranslationPanel({
       await navigator.clipboard.writeText(panel.output);
     }
   }
+
+  const isFavorite = favoritePairs.some(
+    (p) => p.sourceLanguage === panel.sourceLanguage && p.targetLanguage === panel.targetLanguage
+  );
 
   return (
     <article className="translation-panel">
@@ -90,6 +100,43 @@ export function TranslationPanel({
           onChange={(code) => patch({ targetLanguage: code })}
           excludeAuto
         />
+      </div>
+
+      {/* 2.5 Favorites Bar */}
+      <div className="favorites-bar">
+        <span className="favorites-label">常用：</span>
+        <div className="favorites-chips">
+          {favoritePairs.map((pair) => {
+            const isCurrent =
+              pair.sourceLanguage === panel.sourceLanguage &&
+              pair.targetLanguage === panel.targetLanguage;
+            return (
+              <button
+                type="button"
+                key={pair.id}
+                className={`favorite-chip ${isCurrent ? "active" : ""}`}
+                onClick={() =>
+                  patch({
+                    sourceLanguage: pair.sourceLanguage,
+                    targetLanguage: pair.targetLanguage,
+                    status: "idle",
+                    error: undefined,
+                  })
+                }
+              >
+                {getLanguageLabel(pair.sourceLanguage)} → {getLanguageLabel(pair.targetLanguage)}
+              </button>
+            );
+          })}
+        </div>
+        <button
+          type="button"
+          className={`favorite-star-btn ${isFavorite ? "active" : ""}`}
+          onClick={() => onToggleFavorite(panel.sourceLanguage, panel.targetLanguage)}
+          title={isFavorite ? "取消收藏此組合" : "收藏此組合"}
+        >
+          <Star size={13} fill={isFavorite ? "var(--accent-color)" : "none"} aria-hidden="true" />
+        </button>
       </div>
 
 

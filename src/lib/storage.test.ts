@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { defaultProviderSettings, loadProviderSettings, saveProviderSettings, updateProviderKey } from "./storage";
+import { defaultProviderSettings, loadProviderSettings, saveProviderSettings, updateProviderKey, loadFavoritePairs, saveFavoritePairs } from "./storage";
 
 function createStorage() {
   const values = new Map<string, string>();
@@ -44,6 +44,27 @@ describe("storage", () => {
     expect(loaded.model.gemini).toBe("gemini-2.5-flash");
     expect(loaded.mode).toBe("business");
     expect(loaded.tone).toBe("formal");
+  });
+
+  it("loads default favorite pairs when storage is empty", () => {
+    const storage = createStorage();
+    const loaded = loadFavoritePairs(storage);
+    expect(loaded.length).toBe(3);
+    expect(loaded[0].sourceLanguage).toBe("zh-Hant");
+    expect(loaded[0].targetLanguage).toBe("en");
+  });
+
+  it("saves and loads custom favorite pairs", () => {
+    const storage = createStorage();
+    const customPairs = [
+      { id: "fav-1", sourceLanguage: "auto" as const, targetLanguage: "fr" as const }
+    ];
+    saveFavoritePairs(customPairs, storage);
+    const loaded = loadFavoritePairs(storage);
+    expect(loaded.length).toBe(1);
+    expect(loaded[0].id).toBe("fav-1");
+    expect(loaded[0].sourceLanguage).toBe("auto");
+    expect(loaded[0].targetLanguage).toBe("fr");
   });
 });
 

@@ -27,7 +27,7 @@ export class TranslationError extends Error {
 export function buildOpenAiRequest(prompt: string, model: string) {
   return {
     model,
-    input: [
+    messages: [
       {
         role: "user",
         content: prompt,
@@ -92,7 +92,7 @@ export async function translateText(request: TranslateRequest) {
 }
 
 async function translateWithOpenAi(prompt: string, request: TranslateRequest) {
-  const response = await fetch("https://api.openai.com/v1/responses", {
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -107,10 +107,7 @@ async function translateWithOpenAi(prompt: string, request: TranslateRequest) {
     throw normalizeProviderError(payload, response.status);
   }
 
-  const outputText =
-    typeof payload.output_text === "string"
-      ? payload.output_text
-      : extractOpenAiOutput(payload);
+  const outputText = payload.choices?.[0]?.message?.content;
 
   if (!outputText) {
     throw new TranslationError("OpenAI 回應中沒有可用的翻譯文字。", response.status);

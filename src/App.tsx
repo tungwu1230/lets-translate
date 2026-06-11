@@ -2,17 +2,20 @@ import { Plus, Settings2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ProviderSettingsPanel } from "./components/ProviderSettingsPanel";
 import { TranslationPanel } from "./components/TranslationPanel";
-import { loadProviderSettings, saveProviderSettings } from "./lib/storage";
+import { loadProviderSettings, saveProviderSettings, loadFavoritePairs, saveFavoritePairs } from "./lib/storage";
 import { translateText, TranslationError } from "./lib/provider";
-import type { ProviderSettings, TranslationPanelState } from "./lib/types";
+import type { ProviderSettings, TranslationPanelState, FavoritePair, LanguageCode } from "./lib/types";
 
-function createPanel(index: number, overrides: Partial<TranslationPanelState> = {}): TranslationPanelState {
-  const isReplyPanel = index % 2 === 0;
+function createPanel(
+  index: number,
+  defaultPair?: { sourceLanguage: LanguageCode; targetLanguage: LanguageCode },
+  overrides: Partial<TranslationPanelState> = {}
+): TranslationPanelState {
   return {
     id: crypto.randomUUID(),
-    title: isReplyPanel ? "回覆翻譯" : "閱讀翻譯",
-    sourceLanguage: isReplyPanel ? "zh-Hant" : "en",
-    targetLanguage: isReplyPanel ? "en" : "zh-Hant",
+    title: `翻譯面板 ${index}`,
+    sourceLanguage: defaultPair?.sourceLanguage ?? "auto",
+    targetLanguage: defaultPair?.targetLanguage ?? "zh-Hant",
     input: "",
     output: "",
     status: "idle",
@@ -22,13 +25,24 @@ function createPanel(index: number, overrides: Partial<TranslationPanelState> = 
 
 export default function App() {
   const [settings, setSettings] = useState<ProviderSettings>(() => loadProviderSettings());
-  const [panels, setPanels] = useState<TranslationPanelState[]>(() => [createPanel(1)]);
+  const [favoritePairs, setFavoritePairs] = useState<FavoritePair[]>(() => loadFavoritePairs());
+  
+  const [panels, setPanels] = useState<TranslationPanelState[]>(() => {
+    const savedFavs = loadFavoritePairs();
+    const defaultPair = savedFavs[0] || { sourceLanguage: "zh-Hant", targetLanguage: "en" };
+    return [createPanel(1, defaultPair)];
+  });
+  
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const abortControllers = useRef<Record<string, AbortController>>({});
 
   useEffect(() => {
     saveProviderSettings(settings);
   }, [settings]);
+
+  useEffect(() => {
+    saveFavoritePairs(favoritePairs);
+  }, [favoritePairs]);
 
   const summary = useMemo(() => {
     const activeCount = panels.filter((panel) => panel.status === "translating").length;
@@ -47,8 +61,33 @@ export default function App() {
     );
   }
 
+  function toggleFavoritePair(sourceLanguage: LanguageCode, targetLanguage: LanguageCode) {
+    setFavoritePairs((current) => {
+      const exists = current.some(
+        (p) => p.sourceLanguage === sourceLanguage && p.targetLanguage === targetLanguage
+      );
+      if (exists) {
+        // Remove from favorites
+        return current.filter(
+          (p) => !(p.sourceLanguage === sourceLanguage && p.targetLanguage === targetLanguage)
+        );
+      } else {
+        // Add to favorites
+        return [
+          ...current,
+          {
+            id: crypto.randomUUID(),
+            sourceLanguage,
+            targetLanguage,
+          },
+        ];
+      }
+    });
+  }
+
   function addPanel() {
-    setPanels((current) => [...current, createPanel(current.length + 1)]);
+    const defaultPair = favoritePairs[0] || { sourceLanguage: "zh-Hant", targetLanguage: "en" };
+    setPanels((current) => [...current, createPanel(current.length + 1, defaultPair)]);
   }
 
   function duplicatePanel(panel: TranslationPanelState) {
@@ -191,6 +230,8 @@ export default function App() {
             onCancel={() => cancelTranslation(panel.id)}
             onDelete={() => deletePanel(panel.id)}
             canDelete={panels.length > 1}
+            favoritePairs={favoritePairs}
+            onToggleFavorite={toggleFavoritePair}
           />
         ))}
       </section>

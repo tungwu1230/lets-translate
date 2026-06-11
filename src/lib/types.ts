@@ -18,6 +18,12 @@ export type LanguageCode =
   | "es"
   | (string & {}); // 允許任意自訂語言字串
 
+export interface FavoritePair {
+  id: string;
+  sourceLanguage: LanguageCode;
+  targetLanguage: LanguageCode;
+}
+
 
 export interface ModelOption {
   id: string;
