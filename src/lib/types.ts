@@ -39,6 +39,7 @@ export interface ProviderSettings {
   provider: ProviderId;
   apiKeys: Record<ProviderId, string>;
   rememberKeys: boolean;
+  stream: boolean; // 是否啟用串流模式
   // 全局翻譯設定
   model: Record<ProviderId, string>; // 記錄各 provider 選用的 model
   mode: TranslationMode;

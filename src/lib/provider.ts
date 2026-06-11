@@ -12,6 +12,8 @@ export interface TranslateRequest {
   text: string;
   signal?: AbortSignal;
   customEndpoint?: string; // 選用自訂 API 端點
+  stream?: boolean; // 是否啟用串流
+  onChunk?: (text: string) => void; // 串流回呼
 }
 
 export class TranslationError extends Error {
@@ -24,7 +26,7 @@ export class TranslationError extends Error {
   }
 }
 
-export function buildOpenAiRequest(prompt: string, model: string) {
+export function buildOpenAiRequest(prompt: string, model: string, stream = false) {
   return {
     model,
     messages: [
@@ -34,6 +36,7 @@ export function buildOpenAiRequest(prompt: string, model: string) {
       },
     ],
     temperature: 0.2,
+    stream,
   };
 }
 
@@ -92,21 +95,58 @@ export async function translateText(request: TranslateRequest) {
 }
 
 async function translateWithOpenAi(prompt: string, request: TranslateRequest) {
+  const isStreaming = !!(request.stream && request.onChunk);
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${request.apiKey}`,
     },
-    body: JSON.stringify(buildOpenAiRequest(prompt, request.model)),
+    body: JSON.stringify(buildOpenAiRequest(prompt, request.model, isStreaming)),
     signal: request.signal,
   });
 
-  const payload = await readJson(response);
   if (!response.ok) {
+    const payload = await readJson(response);
     throw normalizeProviderError(payload, response.status);
   }
 
+  if (isStreaming) {
+    const reader = response.body?.getReader();
+    if (!reader) {
+      throw new TranslationError("無法讀取回應串流。", response.status);
+    }
+    const decoder = new TextDecoder();
+    let accumulatedText = "";
+    let buffer = "";
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+      for (const line of lines) {
+        const cleanLine = line.trim();
+        if (!cleanLine) continue;
+        if (cleanLine === "data: [DONE]") continue;
+        if (cleanLine.startsWith("data: ")) {
+          try {
+            const json = JSON.parse(cleanLine.slice(6));
+            const content = json.choices?.[0]?.delta?.content || "";
+            if (content) {
+              accumulatedText += content;
+              request.onChunk?.(accumulatedText);
+            }
+          } catch {
+            // 忽略分片 JSON 解析錯誤
+          }
+        }
+      }
+    }
+    return accumulatedText.trim();
+  }
+
+  const payload = await readJson(response);
   const outputText = payload.choices?.[0]?.message?.content;
 
   if (!outputText) {
@@ -126,18 +166,66 @@ async function translateWithCustom(prompt: string, request: TranslateRequest) {
     headers["Authorization"] = `Bearer ${request.apiKey}`;
   }
 
+  const isStreaming = !!(request.stream && request.onChunk);
+
   const response = await fetch(endpoint, {
     method: "POST",
     headers,
-    body: JSON.stringify(buildCustomChatRequest(prompt, request.model)),
+    body: JSON.stringify({
+      model: request.model,
+      messages: [
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+      temperature: 0.2,
+      stream: isStreaming,
+    }),
     signal: request.signal,
   });
 
-  const payload = await readJson(response);
   if (!response.ok) {
+    const payload = await readJson(response);
     throw normalizeProviderError(payload, response.status);
   }
 
+  if (isStreaming) {
+    const reader = response.body?.getReader();
+    if (!reader) {
+      throw new TranslationError("無法讀取回應串流。", response.status);
+    }
+    const decoder = new TextDecoder();
+    let accumulatedText = "";
+    let buffer = "";
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+      for (const line of lines) {
+        const cleanLine = line.trim();
+        if (!cleanLine) continue;
+        if (cleanLine === "data: [DONE]") continue;
+        if (cleanLine.startsWith("data: ")) {
+          try {
+            const json = JSON.parse(cleanLine.slice(6));
+            const content = json.choices?.[0]?.delta?.content || "";
+            if (content) {
+              accumulatedText += content;
+              request.onChunk?.(accumulatedText);
+            }
+          } catch {
+            // 忽略分片 JSON 解析錯誤
+          }
+        }
+      }
+    }
+    return accumulatedText.trim();
+  }
+
+  const payload = await readJson(response);
   // 標準 OpenAI chat completion 回傳格式
   const outputText = payload.choices?.[0]?.message?.content || payload.output_text;
   if (!outputText) {
@@ -148,9 +236,11 @@ async function translateWithCustom(prompt: string, request: TranslateRequest) {
 }
 
 async function translateWithGemini(prompt: string, request: TranslateRequest) {
+  const isStreaming = !!(request.stream && request.onChunk);
+  const action = isStreaming ? "streamGenerateContent" : "generateContent";
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
     request.model,
-  )}:generateContent?key=${encodeURIComponent(request.apiKey)}`;
+  )}:${action}?key=${encodeURIComponent(request.apiKey)}`;
 
   const response = await fetch(endpoint, {
     method: "POST",
@@ -161,11 +251,48 @@ async function translateWithGemini(prompt: string, request: TranslateRequest) {
     signal: request.signal,
   });
 
-  const payload = await readJson(response);
   if (!response.ok) {
+    const payload = await readJson(response);
     throw normalizeProviderError(payload, response.status);
   }
 
+  if (isStreaming) {
+    const reader = response.body?.getReader();
+    if (!reader) {
+      throw new TranslationError("無法讀取回應串流。", response.status);
+    }
+    const decoder = new TextDecoder();
+    let accumulatedText = "";
+    let buffer = "";
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+      for (const line of lines) {
+        let cleanLine = line.trim();
+        if (cleanLine.startsWith("[")) cleanLine = cleanLine.slice(1);
+        if (cleanLine.endsWith("]")) cleanLine = cleanLine.slice(0, -1);
+        if (cleanLine.startsWith(",")) cleanLine = cleanLine.slice(1);
+        cleanLine = cleanLine.trim();
+        if (!cleanLine) continue;
+        try {
+          const json = JSON.parse(cleanLine);
+          const content = json.candidates?.[0]?.content?.parts?.[0]?.text || "";
+          if (content) {
+            accumulatedText += content;
+            request.onChunk?.(accumulatedText);
+          }
+        } catch {
+          // 忽略分片 JSON 解析錯誤
+        }
+      }
+    }
+    return accumulatedText.trim();
+  }
+
+  const payload = await readJson(response);
   const outputText = payload.candidates?.[0]?.content?.parts
     ?.map((part: { text?: string }) => part.text)
     .filter(Boolean)
@@ -184,14 +311,6 @@ async function readJson(response: Response) {
   } catch {
     return {};
   }
-}
-
-function extractOpenAiOutput(payload: any) {
-  return payload.output
-    ?.flatMap((item: any) => item.content ?? [])
-    ?.map((content: any) => content.text)
-    ?.filter(Boolean)
-    ?.join("");
 }
 
 function normalizeProviderError(payload: any, status: number) {

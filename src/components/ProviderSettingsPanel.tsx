@@ -51,6 +51,9 @@ export function ProviderSettingsPanel({ settings, onChange, onClose }: Props) {
               ))}
             </div>
 
+          </div>
+
+          <div style={{ display: "flex", gap: "16px", marginTop: "4px" }}>
             <label className="remember-toggle">
               <input
                 type="checkbox"
@@ -58,6 +61,15 @@ export function ProviderSettingsPanel({ settings, onChange, onClose }: Props) {
                 onChange={(event) => onChange({ ...settings, rememberKeys: event.target.checked })}
               />
               記住金鑰
+            </label>
+
+            <label className="remember-toggle">
+              <input
+                type="checkbox"
+                checked={settings.stream}
+                onChange={(event) => onChange({ ...settings, stream: event.target.checked })}
+              />
+              啟用串流模式
             </label>
           </div>
 

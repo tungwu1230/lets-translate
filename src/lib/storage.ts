@@ -10,6 +10,7 @@ export const defaultProviderSettings: ProviderSettings = {
     custom: "",
   },
   rememberKeys: false,
+  stream: true,
   model: {
     openai: "gpt-5.4-nano",
     gemini: "gemini-2.5-flash-lite",
@@ -36,6 +37,7 @@ export function loadProviderSettings(storage: Storage | undefined = globalThis.l
         custom: typeof parsed.apiKeys?.custom === "string" ? parsed.apiKeys.custom : "",
       },
       rememberKeys: parsed.rememberKeys === true,
+      stream: parsed.stream !== false,
       model: {
         openai: typeof parsed.model?.openai === "string" ? parsed.model.openai : "gpt-5.4-nano",
         gemini: typeof parsed.model?.gemini === "string" ? parsed.model.gemini : "gemini-2.5-flash-lite",

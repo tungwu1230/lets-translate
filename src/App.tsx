@@ -124,7 +124,7 @@ export default function App() {
     cancelTranslation(panel.id);
     const controller = new AbortController();
     abortControllers.current[panel.id] = controller;
-    patchPanel(panel.id, { status: "translating", error: undefined });
+    patchPanel(panel.id, { status: "translating", error: undefined, output: "" });
 
     try {
       const activeModel = settings.provider === "custom" ? settings.customModel : settings.model[settings.provider];
@@ -139,6 +139,10 @@ export default function App() {
         text: panel.input,
         signal: controller.signal,
         customEndpoint: settings.customEndpoint,
+        stream: settings.stream,
+        onChunk: (chunk) => {
+          patchPanel(panel.id, { output: chunk });
+        },
       });
 
 
