@@ -88,6 +88,15 @@ export function TranslationPanel({
 
       {/* 2. Seamless Integrated Language Selector Row at Top */}
       <div className="lang-selector-row">
+        <button
+          type="button"
+          className={`favorite-star-btn ${isFavorite ? "active" : ""}`}
+          onClick={() => onToggleFavorite(panel.sourceLanguage, panel.targetLanguage)}
+          title={isFavorite ? "取消收藏此組合" : "收藏此組合"}
+        >
+          <Star size={13} fill={isFavorite ? "var(--accent-color)" : "none"} aria-hidden="true" />
+        </button>
+
         <LanguageSelector
           value={panel.sourceLanguage}
           onChange={(code) => patch({ sourceLanguage: code })}
@@ -131,14 +140,6 @@ export function TranslationPanel({
             );
           })}
         </div>
-        <button
-          type="button"
-          className={`favorite-star-btn ${isFavorite ? "active" : ""}`}
-          onClick={() => onToggleFavorite(panel.sourceLanguage, panel.targetLanguage)}
-          title={isFavorite ? "取消收藏此組合" : "收藏此組合"}
-        >
-          <Star size={13} fill={isFavorite ? "var(--accent-color)" : "none"} aria-hidden="true" />
-        </button>
       </div>
 
 
