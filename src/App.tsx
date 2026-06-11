@@ -159,7 +159,7 @@ export default function App() {
 
       <section className="toolbar" aria-label="工具列狀態">
         <div>
-          <h2>{isCompareMode ? "翻譯面板對照" : "翻譯工具"}</h2>
+          <h2>翻譯面板</h2>
           <p>
             {isCompareMode 
               ? `${panels.length} 個面板 · ${summary.activeCount} 個執行中`
@@ -176,7 +176,7 @@ export default function App() {
           )}
           <button type="button" className="add-button" onClick={addPanel}>
             <Plus size={18} aria-hidden="true" />
-            {isCompareMode ? "新增對照面板" : "開啟對照翻譯"}
+            新增面板
           </button>
         </div>
       </section>
@@ -189,15 +189,14 @@ export default function App() {
             onChange={updatePanel}
             onTranslate={() => runTranslation(panel)}
             onCancel={() => cancelTranslation(panel.id)}
-            onDuplicate={() => duplicatePanel(panel)}
             onDelete={() => deletePanel(panel.id)}
             canDelete={panels.length > 1}
-            isCompareMode={isCompareMode}
           />
         ))}
       </section>
     </main>
   );
 }
+
 
 

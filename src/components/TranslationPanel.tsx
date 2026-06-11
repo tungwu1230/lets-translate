@@ -1,13 +1,12 @@
 import {
   ArrowLeftRight,
   Copy,
-  CopyPlus,
   Eraser,
   Loader2,
   Play,
   RefreshCw,
   Square,
-  Trash2,
+  X,
 } from "lucide-react";
 import {
   languageOptions,
@@ -22,23 +21,17 @@ interface Props {
   onChange: (panel: TranslationPanelState) => void;
   onTranslate: () => void;
   onCancel: () => void;
-  onDuplicate: () => void;
   onDelete: () => void;
   canDelete: boolean;
-  isCompareMode: boolean;
 }
-
-
 
 export function TranslationPanel({
   panel,
   onChange,
   onTranslate,
   onCancel,
-  onDuplicate,
   onDelete,
   canDelete,
-  isCompareMode,
 }: Props) {
   const isTranslating = panel.status === "translating";
 
@@ -69,7 +62,20 @@ export function TranslationPanel({
 
   return (
     <article className="translation-panel">
-      {/* 1. Seamless Integrated Language Selector Row at Top */}
+      {/* 1. Close (Delete) Button at Top Right when multiple panels exist */}
+      {canDelete && (
+        <button
+          type="button"
+          className="panel-close-btn"
+          onClick={onDelete}
+          title="刪除面板"
+          aria-label="刪除面板"
+        >
+          <X size={16} />
+        </button>
+      )}
+
+      {/* 2. Seamless Integrated Language Selector Row at Top */}
       <div className="lang-selector-row">
         <select
           className="lang-dropdown"
@@ -104,21 +110,11 @@ export function TranslationPanel({
         </select>
       </div>
 
-      {/* 2. Main Editors Split Area */}
+      {/* 3. Main Editors Split Area */}
       <div className="panel-split">
         {/* Left Side: Input Textarea */}
         <div className="editor-pane input-pane">
-          <div className="pane-header-row">
-            <span className="pane-tag">原文</span>
-            {isCompareMode && (
-              <input
-                className="panel-title-inline"
-                value={panel.title}
-                onChange={(event) => patch({ title: event.target.value })}
-                aria-label="面板名稱"
-              />
-            )}
-          </div>
+          <span className="pane-tag">原文</span>
           <textarea
             value={panel.input}
             placeholder="貼上或輸入要翻譯的內容..."
@@ -128,22 +124,6 @@ export function TranslationPanel({
           <div className="pane-footer">
             <span className="word-count">{panel.input.length} 字</span>
             <div className="actions">
-              {isCompareMode && (
-                <>
-                  <button type="button" className="action-btn-icon-only" onClick={onDuplicate} title="複製面板">
-                    <CopyPlus size={15} aria-hidden="true" />
-                  </button>
-                  <button
-                    type="button"
-                    className="action-btn-icon-only danger"
-                    onClick={onDelete}
-                    disabled={!canDelete}
-                    title="刪除面板"
-                  >
-                    <Trash2 size={15} aria-hidden="true" />
-                  </button>
-                </>
-              )}
               <button type="button" className="action-btn-text" onClick={() => patch({ input: "", output: "", status: "idle", error: undefined })}>
                 <Eraser size={14} aria-hidden="true" />
                 清空
@@ -166,7 +146,6 @@ export function TranslationPanel({
               {panel.status === "idle" && <span className="status-dot">待翻譯</span>}
             </span>
             <div className="actions">
-
               <button type="button" className="action-btn-text" onClick={copyOutput} disabled={!panel.output}>
                 <Copy size={13} aria-hidden="true" />
                 複製譯文
@@ -186,7 +165,6 @@ export function TranslationPanel({
           </div>
         </div>
       </div>
-
       {isTranslating && (
         <div className="loading-cover" aria-live="polite">
           <Loader2 className="spin" size={20} aria-hidden="true" />
@@ -196,5 +174,7 @@ export function TranslationPanel({
     </article>
   );
 }
+
+
 
 
