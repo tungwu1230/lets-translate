@@ -214,6 +214,19 @@ export function ProviderSettingsPanel({ settings, onChange, onClose }: Props) {
             </div>
           </div>
         </div>
+
+        {/* Section 5: Developer Mode */}
+        <div className="settings-group">
+          <h3>開發人員設定</h3>
+          <label className="remember-toggle" style={{ marginTop: "8px", display: "flex", alignItems: "center", gap: "8px" }}>
+            <input
+              type="checkbox"
+              checked={settings.developerMode}
+              onChange={(event) => onChange({ ...settings, developerMode: event.target.checked })}
+            />
+            <span>啟用開發人員模式 (顯示詳細的 Token 消耗、翻譯時間與估算花費)</span>
+          </label>
+        </div>
       </div>
     </section>
   );

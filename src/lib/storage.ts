@@ -20,6 +20,7 @@ export const defaultProviderSettings: ProviderSettings = {
   tone: "neutral",
   customEndpoint: "https://api.openai.com/v1/chat/completions",
   customModel: "gpt-4o",
+  developerMode: false,
 };
 
 export function loadProviderSettings(storage: Storage | undefined = globalThis.localStorage): ProviderSettings {
@@ -51,6 +52,7 @@ export function loadProviderSettings(storage: Storage | undefined = globalThis.l
         : "neutral",
       customEndpoint: typeof parsed.customEndpoint === "string" ? parsed.customEndpoint : "https://api.openai.com/v1/chat/completions",
       customModel: typeof parsed.customModel === "string" ? parsed.customModel : "gpt-4o",
+      developerMode: parsed.developerMode === true,
     };
   } catch {
     return defaultProviderSettings;

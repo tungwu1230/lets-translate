@@ -1,10 +1,13 @@
-import { Plus, Settings2, Github } from "lucide-react";
+import { Plus, Settings2, Github, History } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ProviderSettingsPanel } from "./components/ProviderSettingsPanel";
 import { TranslationPanel } from "./components/TranslationPanel";
+import { HistoryDrawer } from "./components/HistoryDrawer";
 import { loadProviderSettings, saveProviderSettings, loadFavoritePairs, saveFavoritePairs } from "./lib/storage";
 import { translateText, TranslationError } from "./lib/provider";
-import type { ProviderSettings, TranslationPanelState, FavoritePair, LanguageCode } from "./lib/types";
+import { addHistoryRecord, getHistoryRecords, deleteHistoryRecord as dbDeleteHistoryRecord, clearHistory as dbClearHistory } from "./lib/db";
+import { estimateTokens, estimateCostUsd } from "./lib/cost";
+import type { ProviderSettings, TranslationPanelState, FavoritePair, LanguageCode, HistoryRecord } from "./lib/types";
 
 function createPanel(
   index: number,
@@ -34,7 +37,14 @@ export default function App() {
   });
   
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [historyRecords, setHistoryRecords] = useState<HistoryRecord[]>([]);
   const abortControllers = useRef<Record<string, AbortController>>({});
+
+  useEffect(() => {
+    // Load history from IndexedDB
+    getHistoryRecords().then(setHistoryRecords).catch(console.error);
+  }, []);
 
   useEffect(() => {
     saveProviderSettings(settings);
@@ -126,6 +136,7 @@ export default function App() {
     abortControllers.current[panel.id] = controller;
     patchPanel(panel.id, { status: "translating", error: undefined, output: "" });
 
+    const startTime = performance.now();
     try {
       const activeModel = settings.provider === "custom" ? settings.customModel : settings.model[settings.provider];
       const output = await translateText({
@@ -145,11 +156,41 @@ export default function App() {
         },
       });
 
+      const endTime = performance.now();
+      const durationMs = Math.round(endTime - startTime);
 
       patchPanel(panel.id, {
         output,
         status: "done",
       });
+
+      // 新增歷史紀錄
+      const inputTokens = estimateTokens(panel.input);
+      const outputTokens = estimateTokens(output);
+      const estimatedCostUsd = settings.provider === "custom" ? undefined : estimateCostUsd(activeModel, panel.input, output);
+
+      const record: HistoryRecord = {
+        id: crypto.randomUUID(),
+        createdAt: new Date().toISOString(),
+        sourceLanguage: panel.sourceLanguage,
+        targetLanguage: panel.targetLanguage,
+        input: panel.input,
+        output: output,
+        provider: settings.provider,
+        model: activeModel,
+        durationMs,
+        usage: {
+          promptTokens: inputTokens,
+          completionTokens: outputTokens,
+          totalTokens: inputTokens + outputTokens,
+          estimatedCostUsd,
+        },
+      };
+
+      await addHistoryRecord(record);
+      // 重新讀取歷史紀錄
+      const updatedRecords = await getHistoryRecords();
+      setHistoryRecords(updatedRecords);
     } catch (error) {
       if (controller.signal.aborted) {
         patchPanel(panel.id, { status: "idle" });
@@ -175,6 +216,41 @@ export default function App() {
     await Promise.all(idlePanels.map(panel => runTranslation(panel)));
   }
 
+  async function handleDeleteHistory(id: string) {
+    try {
+      await dbDeleteHistoryRecord(id);
+      setHistoryRecords(await getHistoryRecords());
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  async function handleClearHistory() {
+    if (confirm("確定要清除所有翻譯歷史紀錄嗎？")) {
+      try {
+        await dbClearHistory();
+        setHistoryRecords([]);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  }
+
+  function handleApplyHistory(record: HistoryRecord) {
+    if (panels.length > 0) {
+      const firstPanel = panels[0];
+      updatePanel({
+        ...firstPanel,
+        sourceLanguage: record.sourceLanguage,
+        targetLanguage: record.targetLanguage,
+        input: record.input,
+        output: record.output,
+        status: "done",
+      });
+      setIsHistoryOpen(false);
+    }
+  }
+
   return (
     <div className="app-container">
       <header className="app-header">
@@ -193,6 +269,14 @@ export default function App() {
             >
               <Github size={16} aria-hidden="true" />
             </a>
+            <button
+              type="button"
+              className={`settings-toggle-btn ${isHistoryOpen ? "active" : ""}`}
+              onClick={() => setIsHistoryOpen(!isHistoryOpen)}
+              title="歷史紀錄"
+            >
+              <History size={16} aria-hidden="true" />
+            </button>
             <button
               type="button"
               className={`settings-toggle-btn ${isSettingsOpen ? "active" : ""}`}
@@ -214,6 +298,22 @@ export default function App() {
                 settings={settings} 
                 onChange={setSettings} 
                 onClose={() => setIsSettingsOpen(false)} 
+              />
+            </div>
+          </div>
+        )}
+
+        {isHistoryOpen && (
+          <div className="settings-overlay-wrapper">
+            <div className="settings-backdrop" onClick={() => setIsHistoryOpen(false)} />
+            <div className="settings-drawer">
+              <HistoryDrawer
+                records={historyRecords}
+                developerMode={settings.developerMode}
+                onClose={() => setIsHistoryOpen(false)}
+                onDeleteRecord={handleDeleteHistory}
+                onClearHistory={handleClearHistory}
+                onApplyRecord={handleApplyHistory}
               />
             </div>
           </div>

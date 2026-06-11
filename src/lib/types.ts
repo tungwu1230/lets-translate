@@ -46,6 +46,7 @@ export interface ProviderSettings {
   tone: TranslationTone;
   customEndpoint: string; // 自訂 API 端點
   customModel: string;    // 自訂模型名稱
+  developerMode: boolean; // 開發人員模式
 }
 
 
@@ -58,5 +59,23 @@ export interface TranslationPanelState {
   output: string;
   status: TranslationStatus;
   error?: string;
+}
+
+export interface HistoryRecord {
+  id: string;
+  createdAt: string; // ISO 8601 string
+  sourceLanguage: LanguageCode;
+  targetLanguage: LanguageCode;
+  input: string;
+  output: string;
+  provider: ProviderId;
+  model: string;
+  durationMs?: number;
+  usage?: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+    estimatedCostUsd?: number;
+  };
 }
 
