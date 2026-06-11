@@ -1,4 +1,4 @@
-import { buildTranslationPrompt } from "./prompt";
+import { buildTranslationPrompt, type TranslationPrompt } from "./prompt";
 import type { LanguageCode, ProviderId, TranslationMode, TranslationTone } from "./types";
 
 export interface TranslateRequest {
@@ -26,13 +26,17 @@ export class TranslationError extends Error {
   }
 }
 
-export function buildOpenAiRequest(prompt: string, model: string, stream = false) {
+export function buildOpenAiRequest(prompt: TranslationPrompt, model: string, stream = false) {
   return {
     model,
     messages: [
       {
+        role: "system",
+        content: prompt.system,
+      },
+      {
         role: "user",
-        content: prompt,
+        content: prompt.user,
       },
     ],
     temperature: 0.2,
@@ -40,25 +44,32 @@ export function buildOpenAiRequest(prompt: string, model: string, stream = false
   };
 }
 
-export function buildCustomChatRequest(prompt: string, model: string) {
+export function buildCustomChatRequest(prompt: TranslationPrompt, model: string) {
   return {
     model,
     messages: [
       {
+        role: "system",
+        content: prompt.system,
+      },
+      {
         role: "user",
-        content: prompt,
+        content: prompt.user,
       },
     ],
     temperature: 0.2,
   };
 }
 
-export function buildGeminiRequest(prompt: string) {
+export function buildGeminiRequest(prompt: TranslationPrompt) {
   return {
+    systemInstruction: {
+      parts: [{ text: prompt.system }],
+    },
     contents: [
       {
         role: "user",
-        parts: [{ text: prompt }],
+        parts: [{ text: prompt.user }],
       },
     ],
     generationConfig: {
@@ -104,7 +115,7 @@ async function fetchWithProxy(url: string, init?: RequestInit): Promise<Response
   });
 }
 
-async function translateWithOpenAi(prompt: string, request: TranslateRequest) {
+async function translateWithOpenAi(prompt: TranslationPrompt, request: TranslateRequest) {
   const isStreaming = !!(request.stream && request.onChunk);
   const response = await fetchWithProxy("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -166,7 +177,7 @@ async function translateWithOpenAi(prompt: string, request: TranslateRequest) {
   return outputText.trim();
 }
 
-async function translateWithCustom(prompt: string, request: TranslateRequest) {
+async function translateWithCustom(prompt: TranslationPrompt, request: TranslateRequest) {
   const endpoint = request.customEndpoint || "https://api.openai.com/v1/chat/completions";
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -182,14 +193,7 @@ async function translateWithCustom(prompt: string, request: TranslateRequest) {
     method: "POST",
     headers,
     body: JSON.stringify({
-      model: request.model,
-      messages: [
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-      temperature: 0.2,
+      ...buildCustomChatRequest(prompt, request.model),
       stream: isStreaming,
     }),
     signal: request.signal,
@@ -245,7 +249,7 @@ async function translateWithCustom(prompt: string, request: TranslateRequest) {
   return outputText.trim();
 }
 
-async function translateWithGemini(prompt: string, request: TranslateRequest) {
+async function translateWithGemini(prompt: TranslationPrompt, request: TranslateRequest) {
   const isStreaming = !!(request.stream && request.onChunk);
   const action = isStreaming ? "streamGenerateContent" : "generateContent";
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
