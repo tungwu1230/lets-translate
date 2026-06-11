@@ -69,6 +69,8 @@ export function TranslationPanel({
     (p) => p.sourceLanguage === panel.sourceLanguage && p.targetLanguage === panel.targetLanguage
   );
 
+  const MAX_CHARS = 5000;
+
   return (
     <article className="translation-panel">
       {/* 1. Close (Delete) Button at Top Right when multiple panels exist */}
@@ -147,12 +149,15 @@ export function TranslationPanel({
           <span className="pane-tag">原文</span>
           <textarea
             value={panel.input}
+            maxLength={MAX_CHARS}
             placeholder="貼上或輸入要翻譯的內容..."
             onChange={(event) => patch({ input: event.target.value, status: "idle", error: undefined })}
           />
           
           <div className="pane-footer">
-            <span className="word-count">{panel.input.length} 字</span>
+            <span className={`word-count ${panel.input.length >= MAX_CHARS ? "limit-reached" : ""}`}>
+              {panel.input.length} / {MAX_CHARS} 字
+            </span>
             <div className="actions">
               <button type="button" className="action-btn-text" onClick={() => patch({ input: "", output: "", status: "idle", error: undefined })}>
                 <Eraser size={14} aria-hidden="true" />

@@ -41,6 +41,17 @@ export default function App() {
   }, [settings]);
 
   useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if ((event.metaKey || event.ctrlKey) && event.key === ",") {
+        event.preventDefault();
+        setIsSettingsOpen((prev) => !prev);
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  useEffect(() => {
     saveFavoritePairs(favoritePairs);
   }, [favoritePairs]);
 
@@ -161,42 +172,41 @@ export default function App() {
   }
 
   return (
-    <main className="app-shell">
-      <header className="app-navbar">
-        <div className="brand-block">
-          <div className="mark">OT</div>
-          <div>
-            <h1>open-translate</h1>
-            <p>可並行、多面板的 LLM 翻譯工具</p>
+    <div className="app-container">
+      <header className="app-header">
+        <div className="header-inner">
+          <div className="brand-block">
+            <span className="brand-breadcrumb">Let's Translate</span>
           </div>
-        </div>
 
-        <div className="navbar-actions">
-          <button
-            type="button"
-            className={`icon-button settings-toggle-btn ${isSettingsOpen ? "active" : ""}`}
-            onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-            title="開啟設定"
-          >
-            <Settings2 size={20} aria-hidden="true" />
-          </button>
+          <div className="navbar-actions">
+            <button
+              type="button"
+              className={`settings-toggle-btn ${isSettingsOpen ? "active" : ""}`}
+              onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+              title="開啟設定"
+            >
+              <Settings2 size={16} aria-hidden="true" />
+            </button>
+          </div>
         </div>
       </header>
 
-      {isSettingsOpen && (
-        <div className="settings-overlay-wrapper">
-          <div className="settings-backdrop" onClick={() => setIsSettingsOpen(false)} />
-          <div className="settings-drawer">
-            <ProviderSettingsPanel 
-              settings={settings} 
-              onChange={setSettings} 
-              onClose={() => setIsSettingsOpen(false)} 
-            />
+      <main className="app-shell">
+        {isSettingsOpen && (
+          <div className="settings-overlay-wrapper">
+            <div className="settings-backdrop" onClick={() => setIsSettingsOpen(false)} />
+            <div className="settings-drawer">
+              <ProviderSettingsPanel 
+                settings={settings} 
+                onChange={setSettings} 
+                onClose={() => setIsSettingsOpen(false)} 
+              />
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      <section className="toolbar" aria-label="工具列狀態">
+        <section className="toolbar" aria-label="工具列狀態">
         <div>
           <h2>翻譯面板</h2>
           <p>
@@ -235,7 +245,8 @@ export default function App() {
           />
         ))}
       </section>
-    </main>
+      </main>
+    </div>
   );
 }
 
