@@ -11,10 +11,8 @@ import {
 import {
   languageOptions,
 } from "../lib/models";
-import type {
-  LanguageCode,
-  TranslationPanelState,
-} from "../lib/types";
+import { LanguageSelector } from "./LanguageSelector";
+import type { TranslationPanelState } from "../lib/types";
 
 interface Props {
   panel: TranslationPanelState;
@@ -24,6 +22,7 @@ interface Props {
   onDelete: () => void;
   canDelete: boolean;
 }
+
 
 export function TranslationPanel({
   panel,
@@ -77,38 +76,22 @@ export function TranslationPanel({
 
       {/* 2. Seamless Integrated Language Selector Row at Top */}
       <div className="lang-selector-row">
-        <select
-          className="lang-dropdown"
+        <LanguageSelector
           value={panel.sourceLanguage}
-          onChange={(event) => patch({ sourceLanguage: event.target.value as LanguageCode })}
-          aria-label="來源語言"
-        >
-          {languageOptions.map((language) => (
-            <option key={language.code} value={language.code}>
-              {language.label}
-            </option>
-          ))}
-        </select>
+          onChange={(code) => patch({ sourceLanguage: code })}
+        />
         
         <button type="button" className="swap-button-circle" onClick={swapLanguages} title="交換語言">
           <ArrowLeftRight size={15} aria-hidden="true" />
         </button>
         
-        <select
-          className="lang-dropdown"
+        <LanguageSelector
           value={panel.targetLanguage}
-          onChange={(event) => patch({ targetLanguage: event.target.value as LanguageCode })}
-          aria-label="目標語言"
-        >
-          {languageOptions
-            .filter((language) => language.code !== "auto")
-            .map((language) => (
-              <option key={language.code} value={language.code}>
-                {language.label}
-              </option>
-            ))}
-        </select>
+          onChange={(code) => patch({ targetLanguage: code })}
+          excludeAuto
+        />
       </div>
+
 
       {/* 3. Main Editors Split Area */}
       <div className="panel-split">
