@@ -1,4 +1,4 @@
-import { Plus, Settings2 } from "lucide-react";
+import { Plus, Settings2, Github } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ProviderSettingsPanel } from "./components/ProviderSettingsPanel";
 import { TranslationPanel } from "./components/TranslationPanel";
@@ -180,6 +180,15 @@ export default function App() {
           </div>
 
           <div className="navbar-actions">
+            <a
+              href="https://github.com/tungwu1230/lets-translate"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="github-link-btn"
+              title="GitHub 專案庫"
+            >
+              <Github size={16} aria-hidden="true" />
+            </a>
             <button
               type="button"
               className={`settings-toggle-btn ${isSettingsOpen ? "active" : ""}`}
