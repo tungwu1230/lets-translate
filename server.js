@@ -1,5 +1,5 @@
 /**
- * open-translate 安全代理伺服器 (Zero-Dependency Proxy Server)
+ * lets-translate 安全代理伺服器 (Zero-Dependency Proxy Server)
  * 
  * 作用：
  * 1. 解決瀏覽器直連 OpenAI / Gemini 的 CORS 跨來源限制。
@@ -10,7 +10,7 @@
  *   export GEMINI_API_KEY="your-gemini-key"
  *   node server.js
  * 
- * 在 open-translate 網頁中：
+ * 在 Let's Translate 網頁中：
  *   將供應商設為「自訂 (Custom)」，端點填入：http://localhost:3001/v1/chat/completions
  *   (API Key 欄位可留空，代理伺服器會自動從環境變數注入)
  */
@@ -103,7 +103,7 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, () => {
   console.log(`=======================================================`);
-  console.log(` open-translate 安全代理伺服器已於 http://localhost:${PORT} 啟動`);
+  console.log(` Let's Translate 安全代理伺服器已於 http://localhost:${PORT} 啟動`);
   console.log(`=======================================================`);
   console.log(` 提示：請於啟動前設定環境變數：`);
   console.log(`   export OPENAI_API_KEY="您的金鑰"`);

@@ -1,6 +1,6 @@
 import type { FavoritePair, ProviderId, ProviderSettings, TranslationMode, TranslationTone } from "./types";
 
-const STORAGE_KEY = "open-translate.provider-settings";
+const STORAGE_KEY = "lets-translate.provider-settings";
 
 export const defaultProviderSettings: ProviderSettings = {
   provider: "openai",
@@ -85,7 +85,7 @@ export function updateProviderKey(settings: ProviderSettings, provider: Provider
   };
 }
 
-const FAVORITES_KEY = "open-translate.favorite-pairs";
+const FAVORITES_KEY = "lets-translate.favorite-pairs";
 
 export const defaultFavoritePairs: FavoritePair[] = [
   { id: "1", sourceLanguage: "zh-Hant", targetLanguage: "en" },
