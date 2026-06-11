@@ -1035,6 +1035,26 @@ textarea::placeholder {
   background: var(--danger-color);
 }
 
+.status-dot.loading::before {
+  background: var(--accent-color);
+  animation: status-pulse 1.2s infinite ease-in-out;
+}
+
+@keyframes status-pulse {
+  0%, 100% { opacity: 0.4; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+
+.translating-pulse textarea {
+  animation: textarea-pulse 1.5s infinite ease-in-out;
+  color: var(--text-secondary);
+}
+
+@keyframes textarea-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
 .panel-error-inline {
   margin-top: 10px;
   padding: 8px 12px;

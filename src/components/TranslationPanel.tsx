@@ -169,14 +169,19 @@ export function TranslationPanel({
         </div>
 
         {/* Right Side: Output Textarea */}
-        <div className="editor-pane output-pane">
+        <div className={`editor-pane output-pane ${isTranslating ? "translating-pulse" : ""}`}>
           <span className="pane-tag">譯文</span>
-          <textarea value={panel.output} placeholder="翻譯結果會出現在這裡..." readOnly />
+          <textarea 
+            value={panel.output} 
+            placeholder={isTranslating ? "正在翻譯中..." : "翻譯結果會出現在這裡..."} 
+            readOnly 
+          />
           
           {panel.error && <div className="panel-error-inline">{panel.error}</div>}
 
           <div className="pane-footer">
             <span className="word-count status-indicator">
+              {panel.status === "translating" && <span className="status-dot loading">翻譯中...</span>}
               {panel.status === "done" && <span className="status-dot success">已就緒</span>}
               {panel.status === "error" && <span className="status-dot error">翻譯出錯</span>}
               {panel.status === "idle" && <span className="status-dot">待翻譯</span>}
@@ -201,12 +206,6 @@ export function TranslationPanel({
           </div>
         </div>
       </div>
-      {isTranslating && (
-        <div className="loading-cover" aria-live="polite">
-          <Loader2 className="spin" size={20} aria-hidden="true" />
-          翻譯中
-        </div>
-      )}
     </article>
   );
 }
