@@ -94,9 +94,19 @@ export async function translateText(request: TranslateRequest) {
   return translateWithGemini(prompt, request);
 }
 
+async function fetchWithProxy(url: string, init?: RequestInit): Promise<Response> {
+  const headers = new Headers(init?.headers);
+  headers.set("x-target-url", url);
+
+  return fetch("/api/proxy", {
+    ...init,
+    headers,
+  });
+}
+
 async function translateWithOpenAi(prompt: string, request: TranslateRequest) {
   const isStreaming = !!(request.stream && request.onChunk);
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+  const response = await fetchWithProxy("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -168,7 +178,7 @@ async function translateWithCustom(prompt: string, request: TranslateRequest) {
 
   const isStreaming = !!(request.stream && request.onChunk);
 
-  const response = await fetch(endpoint, {
+  const response = await fetchWithProxy(endpoint, {
     method: "POST",
     headers,
     body: JSON.stringify({
@@ -242,7 +252,7 @@ async function translateWithGemini(prompt: string, request: TranslateRequest) {
     request.model,
   )}:${action}?key=${encodeURIComponent(request.apiKey)}`;
 
-  const response = await fetch(endpoint, {
+  const response = await fetchWithProxy(endpoint, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
