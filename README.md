@@ -2,7 +2,7 @@
 
 可並行、多面板的現代化大語言模型（LLM）翻譯工具。基於 React + Vite + TypeScript 構建，具備精美溫暖的「自然人文主義設計風格（Natural Humanist Style）」。
 
-👉 **線上使用**：[Let's Translate 網頁服務](https://tungwu1230.github.io/lets-translate/)
+👉 **線上使用**：[Let's Translate 網頁服務](https://lets-translate-vk.vercel.app/)
 
 ---
 
@@ -51,13 +51,19 @@ npm test
 
 ---
 
-## 📦 部署到 GitHub Pages
+## 📦 部署到 Vercel
 
-專案已預先設定好相對路徑（`base: "./"`）與 `gh-pages` 部署套件。只需在您的終端機執行：
+本專案使用 Vercel Edge 函數作為代理伺服器，解決瀏覽器端直接調用 LLM API 的 CORS 限制。部署到 Vercel 後，`/api/proxy` 路由會自動處理所有 API 請求的轉發與 CORS 標頭。
+
 ```bash
-npm run deploy
+# 安裝 Vercel CLI（如尚未安裝）
+npm i -g vercel
+
+# 部署到 Vercel
+vercel
 ```
-*這會自動執行 Production Build（`predeploy`）並將編譯完成的 `dist` 靜態檔案推送發佈至 `gh-pages` 分支。*
+
+或在 Vercel 網站上直接連接 GitHub 仓库進行自動部署。
 
 ---
 
