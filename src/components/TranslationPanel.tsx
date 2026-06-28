@@ -1,4 +1,5 @@
 import { ArrowLeftRight, Copy, Eraser, Play, RefreshCw, Square, Star, X } from 'lucide-react'
+import { LIMITS } from '../constants/limits'
 import { getLanguageLabel } from '../lib/models'
 import { LanguageSelector } from './LanguageSelector'
 import type { TranslationPanelState, FavoritePair, LanguageCode } from '../lib/types'
@@ -54,8 +55,6 @@ export function TranslationPanel({
   const isFavorite = favoritePairs.some(
     (p) => p.sourceLanguage === panel.sourceLanguage && p.targetLanguage === panel.targetLanguage
   )
-
-  const MAX_CHARS = 5000
 
   return (
     <article className="translation-panel">
@@ -140,7 +139,7 @@ export function TranslationPanel({
           <span className="pane-tag">原文</span>
           <textarea
             value={panel.input}
-            maxLength={MAX_CHARS}
+            maxLength={LIMITS.MAX_INPUT_CHARS}
             placeholder="貼上或輸入要翻譯的內容..."
             onChange={(event) =>
               patch({ input: event.target.value, status: 'idle', error: undefined })
@@ -149,9 +148,9 @@ export function TranslationPanel({
 
           <div className="pane-footer">
             <span
-              className={`word-count ${panel.input.length >= MAX_CHARS ? 'limit-reached' : ''}`}
+              className={`word-count ${panel.input.length >= LIMITS.MAX_INPUT_CHARS ? 'limit-reached' : ''}`}
             >
-              {panel.input.length} / {MAX_CHARS} 字
+              {panel.input.length} / {LIMITS.MAX_INPUT_CHARS} 字
             </span>
             <div className="actions">
               <button

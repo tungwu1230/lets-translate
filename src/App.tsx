@@ -1,271 +1,37 @@
 import { Plus, Settings2, Github, History } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useState } from 'react'
 import { ProviderSettingsPanel } from './components/ProviderSettingsPanel'
 import { TranslationPanel } from './components/TranslationPanel'
 import { HistoryDrawer } from './components/HistoryDrawer'
-import {
-  loadProviderSettings,
-  saveProviderSettings,
-  loadFavoritePairs,
-  saveFavoritePairs,
-} from './lib/storage'
-import { translateText, TranslationError } from './lib/provider'
-import {
-  addHistoryRecord,
-  getHistoryRecords,
-  deleteHistoryRecord as dbDeleteHistoryRecord,
-  clearHistory as dbClearHistory,
-} from './lib/db'
-import { estimateTokens, estimateCostUsd } from './lib/cost'
-import type {
-  ProviderSettings,
-  TranslationPanelState,
-  FavoritePair,
-  LanguageCode,
-  HistoryRecord,
-} from './lib/types'
-
-function createPanel(
-  index: number,
-  defaultPair?: { sourceLanguage: LanguageCode; targetLanguage: LanguageCode },
-  overrides: Partial<TranslationPanelState> = {}
-): TranslationPanelState {
-  return {
-    id: crypto.randomUUID(),
-    title: `翻譯面板 ${index}`,
-    sourceLanguage: defaultPair?.sourceLanguage ?? 'auto',
-    targetLanguage: defaultPair?.targetLanguage ?? 'zh-Hant',
-    input: '',
-    output: '',
-    status: 'idle',
-    ...overrides,
-  }
-}
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
+import { useProviderSettings } from './hooks/useProviderSettings'
+import { useFavoritePairs } from './hooks/useFavoritePairs'
+import { useTranslationHistory } from './hooks/useTranslationHistory'
+import { useTranslationPanels } from './hooks/useTranslationPanels'
+import type { TranslationPanelState, HistoryRecord as HistoryRecordType } from './lib/types'
 
 export default function App() {
-  const [settings, setSettings] = useState<ProviderSettings>(() => loadProviderSettings())
-  const [favoritePairs, setFavoritePairs] = useState<FavoritePair[]>(() => loadFavoritePairs())
-
-  const [panels, setPanels] = useState<TranslationPanelState[]>(() => {
-    const savedFavs = loadFavoritePairs()
-    const defaultPair = savedFavs[0] || { sourceLanguage: 'zh-Hant', targetLanguage: 'en' }
-    return [createPanel(1, defaultPair)]
-  })
-
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [isHistoryOpen, setIsHistoryOpen] = useState(false)
-  const [historyRecords, setHistoryRecords] = useState<HistoryRecord[]>([])
-  const abortControllers = useRef<Record<string, AbortController>>({})
 
-  useEffect(() => {
-    // Load history from IndexedDB
-    getHistoryRecords().then(setHistoryRecords).catch(console.error)
-  }, [])
+  // Hooks
+  const { settings, setSettings } = useProviderSettings()
+  const { favoritePairs, toggleFavoritePair } = useFavoritePairs()
+  const history = useTranslationHistory()
+  const panels = useTranslationPanels(settings, favoritePairs, {
+    onHistoryAdded: history.refreshHistory,
+  })
 
-  useEffect(() => {
-    saveProviderSettings(settings)
-  }, [settings])
+  // 鍵盤快捷鍵：Cmd/Ctrl + , 切換設定面板
+  useKeyboardShortcuts({
+    'Cmd+,': () => setIsSettingsOpen((prev) => !prev),
+    'Ctrl+,': () => setIsSettingsOpen((prev) => !prev),
+  })
 
-  useEffect(() => {
-    function handleKeyDown(event: KeyboardEvent) {
-      if ((event.metaKey || event.ctrlKey) && event.key === ',') {
-        event.preventDefault()
-        setIsSettingsOpen((prev) => !prev)
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [])
-
-  useEffect(() => {
-    saveFavoritePairs(favoritePairs)
-  }, [favoritePairs])
-
-  const summary = useMemo(() => {
-    const activeCount = panels.filter((panel) => panel.status === 'translating').length
-    return { activeCount }
-  }, [panels])
-
-  const isCompareMode = panels.length > 1
-
-  function updatePanel(nextPanel: TranslationPanelState) {
-    setPanels((current) => current.map((panel) => (panel.id === nextPanel.id ? nextPanel : panel)))
-  }
-
-  function patchPanel(id: string, patch: Partial<TranslationPanelState>) {
-    setPanels((current) =>
-      current.map((panel) => (panel.id === id ? { ...panel, ...patch } : panel))
-    )
-  }
-
-  function toggleFavoritePair(sourceLanguage: LanguageCode, targetLanguage: LanguageCode) {
-    setFavoritePairs((current) => {
-      const exists = current.some(
-        (p) => p.sourceLanguage === sourceLanguage && p.targetLanguage === targetLanguage
-      )
-      if (exists) {
-        // Remove from favorites
-        return current.filter(
-          (p) => !(p.sourceLanguage === sourceLanguage && p.targetLanguage === targetLanguage)
-        )
-      } else {
-        // Add to favorites
-        return [
-          ...current,
-          {
-            id: crypto.randomUUID(),
-            sourceLanguage,
-            targetLanguage,
-          },
-        ]
-      }
-    })
-  }
-
-  function addPanel() {
-    const defaultPair = favoritePairs[0] || { sourceLanguage: 'zh-Hant', targetLanguage: 'en' }
-    setPanels((current) => [...current, createPanel(current.length + 1, defaultPair)])
-  }
-
-  // Reserved for future "duplicate panel" feature
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  function duplicatePanel(panel: TranslationPanelState) {
-    setPanels((current) => [
-      ...current,
-      {
-        ...panel,
-        id: crypto.randomUUID(),
-        title: `${panel.title} 副本`,
-        status: 'idle',
-        error: undefined,
-      },
-    ])
-  }
-
-  function deletePanel(id: string) {
-    cancelTranslation(id)
-    setPanels((current) =>
-      current.length > 1 ? current.filter((panel) => panel.id !== id) : current
-    )
-  }
-
-  async function runTranslation(panel: TranslationPanelState) {
-    cancelTranslation(panel.id)
-    const controller = new AbortController()
-    abortControllers.current[panel.id] = controller
-    patchPanel(panel.id, { status: 'translating', error: undefined, output: '' })
-
-    const startTime = performance.now()
-    try {
-      const activeModel =
-        settings.provider === 'custom' ? settings.customModel : settings.model[settings.provider]
-      const output = await translateText({
-        provider: settings.provider,
-        apiKey: settings.apiKeys[settings.provider],
-        model: activeModel,
-        sourceLanguage: panel.sourceLanguage,
-        targetLanguage: panel.targetLanguage,
-        mode: settings.mode,
-        tone: settings.tone,
-        text: panel.input,
-        signal: controller.signal,
-        customEndpoint: settings.customEndpoint,
-        stream: settings.stream,
-        onChunk: (chunk) => {
-          patchPanel(panel.id, { output: chunk })
-        },
-      })
-
-      const endTime = performance.now()
-      const durationMs = Math.round(endTime - startTime)
-
-      patchPanel(panel.id, {
-        output,
-        status: 'done',
-      })
-
-      // 新增歷史紀錄
-      const inputTokens = estimateTokens(panel.input)
-      const outputTokens = estimateTokens(output)
-      const estimatedCostUsd =
-        settings.provider === 'custom'
-          ? undefined
-          : estimateCostUsd(activeModel, panel.input, output)
-
-      const record: HistoryRecord = {
-        id: crypto.randomUUID(),
-        createdAt: new Date().toISOString(),
-        sourceLanguage: panel.sourceLanguage,
-        targetLanguage: panel.targetLanguage,
-        input: panel.input,
-        output: output,
-        provider: settings.provider,
-        model: activeModel,
-        durationMs,
-        usage: {
-          promptTokens: inputTokens,
-          completionTokens: outputTokens,
-          totalTokens: inputTokens + outputTokens,
-          estimatedCostUsd,
-        },
-      }
-
-      await addHistoryRecord(record)
-      // 重新讀取歷史紀錄
-      const updatedRecords = await getHistoryRecords()
-      setHistoryRecords(updatedRecords)
-    } catch (error) {
-      if (controller.signal.aborted) {
-        patchPanel(panel.id, { status: 'idle' })
-        return
-      }
-
-      patchPanel(panel.id, {
-        status: 'error',
-        error:
-          error instanceof TranslationError || error instanceof Error
-            ? error.message
-            : '翻譯失敗，請稍後再試。',
-      })
-    } finally {
-      delete abortControllers.current[panel.id]
-    }
-  }
-
-  function cancelTranslation(id: string) {
-    abortControllers.current[id]?.abort()
-    delete abortControllers.current[id]
-  }
-
-  async function runAllTranslations() {
-    const idlePanels = panels.filter((p) => p.input.trim() && p.status !== 'translating')
-    await Promise.all(idlePanels.map((panel) => runTranslation(panel)))
-  }
-
-  async function handleDeleteHistory(id: string) {
-    try {
-      await dbDeleteHistoryRecord(id)
-      setHistoryRecords(await getHistoryRecords())
-    } catch (err) {
-      console.error(err)
-    }
-  }
-
-  async function handleClearHistory() {
-    if (confirm('確定要清除所有翻譯歷史紀錄嗎？')) {
-      try {
-        await dbClearHistory()
-        setHistoryRecords([])
-      } catch (err) {
-        console.error(err)
-      }
-    }
-  }
-
-  function handleApplyHistory(record: HistoryRecord) {
-    if (panels.length > 0) {
-      const firstPanel = panels[0]
-      updatePanel({
+  function handleApplyHistory(record: HistoryRecordType) {
+    if (panels.panels.length > 0) {
+      const firstPanel = panels.panels[0]
+      panels.updatePanel({
         ...firstPanel,
         sourceLanguage: record.sourceLanguage,
         targetLanguage: record.targetLanguage,
@@ -334,11 +100,11 @@ export default function App() {
             <div className="settings-backdrop" onClick={() => setIsHistoryOpen(false)} />
             <div className="settings-drawer">
               <HistoryDrawer
-                records={historyRecords}
+                records={history.historyRecords}
                 developerMode={settings.developerMode}
                 onClose={() => setIsHistoryOpen(false)}
-                onDeleteRecord={handleDeleteHistory}
-                onClearHistory={handleClearHistory}
+                onDeleteRecord={history.deleteHistory}
+                onClearHistory={history.clearHistory}
                 onApplyRecord={handleApplyHistory}
               />
             </div>
@@ -349,25 +115,26 @@ export default function App() {
           <div>
             <h2>翻譯面板</h2>
             <p>
-              {isCompareMode
-                ? `${panels.length} 個面板 · ${summary.activeCount} 個執行中`
-                : summary.activeCount > 0
+              {panels.isCompareMode
+                ? `${panels.panels.length} 個面板 · ${panels.summary.activeCount} 個執行中`
+                : panels.summary.activeCount > 0
                   ? '翻譯中...'
                   : '輸入文字即可開始翻譯'}
             </p>
           </div>
 
           <div className="toolbar-actions">
-            {isCompareMode && panels.some((p) => p.input.trim() && p.status !== 'translating') && (
-              <button
-                type="button"
-                className="ghost-button translate-all-btn"
-                onClick={runAllTranslations}
-              >
-                翻譯全部面板
-              </button>
-            )}
-            <button type="button" className="add-button" onClick={addPanel}>
+            {panels.isCompareMode &&
+              panels.panels.some((p) => p.input.trim() && p.status !== 'translating') && (
+                <button
+                  type="button"
+                  className="ghost-button translate-all-btn"
+                  onClick={panels.runAllTranslations}
+                >
+                  翻譯全部面板
+                </button>
+              )}
+            <button type="button" className="add-button" onClick={panels.addPanel}>
               <Plus size={18} aria-hidden="true" />
               新增面板
             </button>
@@ -375,18 +142,18 @@ export default function App() {
         </section>
 
         <section
-          className={`panel-grid ${isCompareMode ? 'compare-grid' : 'single-grid'}`}
+          className={`panel-grid ${panels.isCompareMode ? 'compare-grid' : 'single-grid'}`}
           aria-label="翻譯面板"
         >
-          {panels.map((panel) => (
+          {panels.panels.map((panel: TranslationPanelState) => (
             <TranslationPanel
               key={panel.id}
               panel={panel}
-              onChange={updatePanel}
-              onTranslate={() => runTranslation(panel)}
-              onCancel={() => cancelTranslation(panel.id)}
-              onDelete={() => deletePanel(panel.id)}
-              canDelete={panels.length > 1}
+              onChange={panels.updatePanel}
+              onTranslate={() => panels.runTranslation(panel)}
+              onCancel={() => panels.cancelTranslation(panel.id)}
+              onDelete={() => panels.deletePanel(panel.id)}
+              canDelete={panels.panels.length > 1}
               favoritePairs={favoritePairs}
               onToggleFavorite={toggleFavoritePair}
             />
