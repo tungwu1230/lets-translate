@@ -1,28 +1,28 @@
-import { buildTranslationPrompt, type TranslationPrompt } from "./prompt";
-import type { LanguageCode, ProviderId, TranslationMode, TranslationTone } from "./types";
+import { buildTranslationPrompt, type TranslationPrompt } from './prompt'
+import type { LanguageCode, ProviderId, TranslationMode, TranslationTone } from './types'
 
 export interface TranslateRequest {
-  provider: ProviderId;
-  apiKey: string;
-  model: string;
-  sourceLanguage: LanguageCode;
-  targetLanguage: LanguageCode;
-  mode: TranslationMode;
-  tone: TranslationTone;
-  text: string;
-  signal?: AbortSignal;
-  customEndpoint?: string; // 選用自訂 API 端點
-  stream?: boolean; // 是否啟用串流
-  onChunk?: (text: string) => void; // 串流回呼
+  provider: ProviderId
+  apiKey: string
+  model: string
+  sourceLanguage: LanguageCode
+  targetLanguage: LanguageCode
+  mode: TranslationMode
+  tone: TranslationTone
+  text: string
+  signal?: AbortSignal
+  customEndpoint?: string // 選用自訂 API 端點
+  stream?: boolean // 是否啟用串流
+  onChunk?: (text: string) => void // 串流回呼
 }
 
 export class TranslationError extends Error {
   constructor(
     message: string,
-    public readonly status?: number,
+    public readonly status?: number
   ) {
-    super(message);
-    this.name = "TranslationError";
+    super(message)
+    this.name = 'TranslationError'
   }
 }
 
@@ -31,17 +31,17 @@ export function buildOpenAiRequest(prompt: TranslationPrompt, model: string, str
     model,
     messages: [
       {
-        role: "system",
+        role: 'system',
         content: prompt.system,
       },
       {
-        role: "user",
+        role: 'user',
         content: prompt.user,
       },
     ],
     temperature: 0.2,
     stream,
-  };
+  }
 }
 
 export function buildCustomChatRequest(prompt: TranslationPrompt, model: string) {
@@ -49,16 +49,16 @@ export function buildCustomChatRequest(prompt: TranslationPrompt, model: string)
     model,
     messages: [
       {
-        role: "system",
+        role: 'system',
         content: prompt.system,
       },
       {
-        role: "user",
+        role: 'user',
         content: prompt.user,
       },
     ],
     temperature: 0.2,
-  };
+  }
 }
 
 export function buildGeminiRequest(prompt: TranslationPrompt) {
@@ -68,22 +68,22 @@ export function buildGeminiRequest(prompt: TranslationPrompt) {
     },
     contents: [
       {
-        role: "user",
+        role: 'user',
         parts: [{ text: prompt.user }],
       },
     ],
     generationConfig: {
       temperature: 0.2,
     },
-  };
+  }
 }
 
 export async function translateText(request: TranslateRequest) {
-  if (request.provider !== "custom" && !request.apiKey.trim()) {
-    throw new TranslationError("請先設定目前供應商的 API key。");
+  if (request.provider !== 'custom' && !request.apiKey.trim()) {
+    throw new TranslationError('請先設定目前供應商的 API key。')
   }
   if (!request.text.trim()) {
-    throw new TranslationError("請輸入要翻譯的文字。");
+    throw new TranslationError('請輸入要翻譯的文字。')
   }
 
   const prompt = buildTranslationPrompt({
@@ -92,71 +92,71 @@ export async function translateText(request: TranslateRequest) {
     mode: request.mode,
     tone: request.tone,
     text: request.text,
-  });
+  })
 
-  if (request.provider === "openai") {
-    return translateWithOpenAi(prompt, request);
+  if (request.provider === 'openai') {
+    return translateWithOpenAi(prompt, request)
   }
 
-  if (request.provider === "custom") {
-    return translateWithCustom(prompt, request);
+  if (request.provider === 'custom') {
+    return translateWithCustom(prompt, request)
   }
 
-  return translateWithGemini(prompt, request);
+  return translateWithGemini(prompt, request)
 }
 
 async function fetchWithProxy(url: string, init?: RequestInit): Promise<Response> {
-  const headers = new Headers(init?.headers);
-  headers.set("x-target-url", url);
+  const headers = new Headers(init?.headers)
+  headers.set('x-target-url', url)
 
-  return fetch("/api/proxy", {
+  return fetch('/api/proxy', {
     ...init,
     headers,
-  });
+  })
 }
 
 async function translateWithOpenAi(prompt: TranslationPrompt, request: TranslateRequest) {
-  const isStreaming = !!(request.stream && request.onChunk);
-  const response = await fetchWithProxy("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
+  const isStreaming = !!(request.stream && request.onChunk)
+  const response = await fetchWithProxy('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
     headers: {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
       Authorization: `Bearer ${request.apiKey}`,
     },
     body: JSON.stringify(buildOpenAiRequest(prompt, request.model, isStreaming)),
     signal: request.signal,
-  });
+  })
 
   if (!response.ok) {
-    const payload = await readJson(response);
-    throw normalizeProviderError(payload, response.status);
+    const payload = await readJson(response)
+    throw normalizeProviderError(payload, response.status)
   }
 
   if (isStreaming) {
-    const reader = response.body?.getReader();
+    const reader = response.body?.getReader()
     if (!reader) {
-      throw new TranslationError("無法讀取回應串流。", response.status);
+      throw new TranslationError('無法讀取回應串流。', response.status)
     }
-    const decoder = new TextDecoder();
-    let accumulatedText = "";
-    let buffer = "";
+    const decoder = new TextDecoder()
+    let accumulatedText = ''
+    let buffer = ''
     while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() || "";
+      const { done, value } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split('\n')
+      buffer = lines.pop() || ''
       for (const line of lines) {
-        const cleanLine = line.trim();
-        if (!cleanLine) continue;
-        if (cleanLine === "data: [DONE]") continue;
-        if (cleanLine.startsWith("data: ")) {
+        const cleanLine = line.trim()
+        if (!cleanLine) continue
+        if (cleanLine === 'data: [DONE]') continue
+        if (cleanLine.startsWith('data: ')) {
           try {
-            const json = JSON.parse(cleanLine.slice(6));
-            const content = json.choices?.[0]?.delta?.content || "";
+            const json = JSON.parse(cleanLine.slice(6))
+            const content = json.choices?.[0]?.delta?.content || ''
             if (content) {
-              accumulatedText += content;
-              request.onChunk?.(accumulatedText);
+              accumulatedText += content
+              request.onChunk?.(accumulatedText)
             }
           } catch {
             // 忽略分片 JSON 解析錯誤
@@ -164,71 +164,71 @@ async function translateWithOpenAi(prompt: TranslationPrompt, request: Translate
         }
       }
     }
-    return accumulatedText.trim();
+    return accumulatedText.trim()
   }
 
-  const payload = await readJson(response);
-  const outputText = payload.choices?.[0]?.message?.content;
+  const payload = await readJson(response)
+  const outputText = payload.choices?.[0]?.message?.content
 
   if (!outputText) {
-    throw new TranslationError("OpenAI 回應中沒有可用的翻譯文字。", response.status);
+    throw new TranslationError('OpenAI 回應中沒有可用的翻譯文字。', response.status)
   }
 
-  return outputText.trim();
+  return outputText.trim()
 }
 
 async function translateWithCustom(prompt: TranslationPrompt, request: TranslateRequest) {
-  const endpoint = request.customEndpoint || "https://api.openai.com/v1/chat/completions";
+  const endpoint = request.customEndpoint || 'https://api.openai.com/v1/chat/completions'
   const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
-  
-  if (request.apiKey.trim()) {
-    headers["Authorization"] = `Bearer ${request.apiKey}`;
+    'Content-Type': 'application/json',
   }
 
-  const isStreaming = !!(request.stream && request.onChunk);
+  if (request.apiKey.trim()) {
+    headers['Authorization'] = `Bearer ${request.apiKey}`
+  }
+
+  const isStreaming = !!(request.stream && request.onChunk)
 
   const response = await fetchWithProxy(endpoint, {
-    method: "POST",
+    method: 'POST',
     headers,
     body: JSON.stringify({
       ...buildCustomChatRequest(prompt, request.model),
       stream: isStreaming,
     }),
     signal: request.signal,
-  });
+  })
 
   if (!response.ok) {
-    const payload = await readJson(response);
-    throw normalizeProviderError(payload, response.status);
+    const payload = await readJson(response)
+    throw normalizeProviderError(payload, response.status)
   }
 
   if (isStreaming) {
-    const reader = response.body?.getReader();
+    const reader = response.body?.getReader()
     if (!reader) {
-      throw new TranslationError("無法讀取回應串流。", response.status);
+      throw new TranslationError('無法讀取回應串流。', response.status)
     }
-    const decoder = new TextDecoder();
-    let accumulatedText = "";
-    let buffer = "";
+    const decoder = new TextDecoder()
+    let accumulatedText = ''
+    let buffer = ''
     while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() || "";
+      const { done, value } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split('\n')
+      buffer = lines.pop() || ''
       for (const line of lines) {
-        const cleanLine = line.trim();
-        if (!cleanLine) continue;
-        if (cleanLine === "data: [DONE]") continue;
-        if (cleanLine.startsWith("data: ")) {
+        const cleanLine = line.trim()
+        if (!cleanLine) continue
+        if (cleanLine === 'data: [DONE]') continue
+        if (cleanLine.startsWith('data: ')) {
           try {
-            const json = JSON.parse(cleanLine.slice(6));
-            const content = json.choices?.[0]?.delta?.content || "";
+            const json = JSON.parse(cleanLine.slice(6))
+            const content = json.choices?.[0]?.delta?.content || ''
             if (content) {
-              accumulatedText += content;
-              request.onChunk?.(accumulatedText);
+              accumulatedText += content
+              request.onChunk?.(accumulatedText)
             }
           } catch {
             // 忽略分片 JSON 解析錯誤
@@ -236,108 +236,115 @@ async function translateWithCustom(prompt: TranslationPrompt, request: Translate
         }
       }
     }
-    return accumulatedText.trim();
+    return accumulatedText.trim()
   }
 
-  const payload = await readJson(response);
+  const payload = await readJson(response)
   // 標準 OpenAI chat completion 回傳格式
-  const outputText = payload.choices?.[0]?.message?.content || payload.output_text;
+  const outputText = payload.choices?.[0]?.message?.content || payload.output_text
   if (!outputText) {
-    throw new TranslationError("自訂 API 回應中沒有可用的翻譯文字(choices[0].message.content)。", response.status);
+    throw new TranslationError(
+      '自訂 API 回應中沒有可用的翻譯文字(choices[0].message.content)。',
+      response.status
+    )
   }
 
-  return outputText.trim();
+  return outputText.trim()
 }
 
 async function translateWithGemini(prompt: TranslationPrompt, request: TranslateRequest) {
-  const isStreaming = !!(request.stream && request.onChunk);
-  const action = isStreaming ? "streamGenerateContent" : "generateContent";
+  const isStreaming = !!(request.stream && request.onChunk)
+  const action = isStreaming ? 'streamGenerateContent' : 'generateContent'
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
-    request.model,
-  )}:${action}?key=${encodeURIComponent(request.apiKey)}`;
+    request.model
+  )}:${action}?key=${encodeURIComponent(request.apiKey)}`
 
   const response = await fetchWithProxy(endpoint, {
-    method: "POST",
+    method: 'POST',
     headers: {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     },
     body: JSON.stringify(buildGeminiRequest(prompt)),
     signal: request.signal,
-  });
+  })
 
   if (!response.ok) {
-    const payload = await readJson(response);
-    throw normalizeProviderError(payload, response.status);
+    const payload = await readJson(response)
+    throw normalizeProviderError(payload, response.status)
   }
 
   if (isStreaming) {
-    const reader = response.body?.getReader();
+    const reader = response.body?.getReader()
     if (!reader) {
-      throw new TranslationError("無法讀取回應串流。", response.status);
+      throw new TranslationError('無法讀取回應串流。', response.status)
     }
-    const decoder = new TextDecoder();
-    let accumulatedText = "";
-    let buffer = "";
+    const decoder = new TextDecoder()
+    let accumulatedText = ''
+    let buffer = ''
     while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() || "";
+      const { done, value } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split('\n')
+      buffer = lines.pop() || ''
       for (const line of lines) {
-        let cleanLine = line.trim();
-        if (cleanLine.startsWith("[")) cleanLine = cleanLine.slice(1);
-        if (cleanLine.endsWith("]")) cleanLine = cleanLine.slice(0, -1);
-        if (cleanLine.startsWith(",")) cleanLine = cleanLine.slice(1);
-        cleanLine = cleanLine.trim();
-        if (!cleanLine) continue;
+        let cleanLine = line.trim()
+        if (cleanLine.startsWith('[')) cleanLine = cleanLine.slice(1)
+        if (cleanLine.endsWith(']')) cleanLine = cleanLine.slice(0, -1)
+        if (cleanLine.startsWith(',')) cleanLine = cleanLine.slice(1)
+        cleanLine = cleanLine.trim()
+        if (!cleanLine) continue
         try {
-          const json = JSON.parse(cleanLine);
-          const content = json.candidates?.[0]?.content?.parts?.[0]?.text || "";
+          const json = JSON.parse(cleanLine)
+          const content = json.candidates?.[0]?.content?.parts?.[0]?.text || ''
           if (content) {
-            accumulatedText += content;
-            request.onChunk?.(accumulatedText);
+            accumulatedText += content
+            request.onChunk?.(accumulatedText)
           }
         } catch {
           // 忽略分片 JSON 解析錯誤
         }
       }
     }
-    return accumulatedText.trim();
+    return accumulatedText.trim()
   }
 
-  const payload = await readJson(response);
+  const payload = await readJson(response)
   const outputText = payload.candidates?.[0]?.content?.parts
     ?.map((part: { text?: string }) => part.text)
     .filter(Boolean)
-    .join("");
+    .join('')
 
   if (!outputText) {
-    throw new TranslationError("Gemini 回應中沒有可用的翻譯文字。", response.status);
+    throw new TranslationError('Gemini 回應中沒有可用的翻譯文字。', response.status)
   }
 
-  return outputText.trim();
+  return outputText.trim()
 }
 
 async function readJson(response: Response) {
   try {
-    return await response.json();
+    return await response.json()
   } catch {
-    return {};
+    return {}
   }
 }
 
-function normalizeProviderError(payload: any, status: number) {
-  const providerMessage = payload.error?.message ?? payload.message;
+interface ProviderErrorResponse {
+  error?: { message?: string }
+  message?: string
+}
+
+function normalizeProviderError(payload: ProviderErrorResponse, status: number) {
+  const providerMessage = payload.error?.message ?? payload.message
   if (status === 401 || status === 403) {
-    return new TranslationError("API key 無效或沒有模型權限，請檢查設定。", status);
+    return new TranslationError('API key 無效或沒有模型權限，請檢查設定。', status)
   }
   if (status === 429) {
-    return new TranslationError("已達供應商速率或額度限制，請稍後重試或更換模型。", status);
+    return new TranslationError('已達供應商速率或額度限制，請稍後重試或更換模型。', status)
   }
-  if (typeof providerMessage === "string" && providerMessage.trim()) {
-    return new TranslationError(providerMessage, status);
+  if (typeof providerMessage === 'string' && providerMessage.trim()) {
+    return new TranslationError(providerMessage, status)
   }
-  return new TranslationError("翻譯服務暫時無法完成請求。", status);
+  return new TranslationError('翻譯服務暫時無法完成請求。', status)
 }
-

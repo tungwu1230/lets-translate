@@ -1,32 +1,18 @@
-import {
-  ArrowLeftRight,
-  Copy,
-  Eraser,
-  Loader2,
-  Play,
-  RefreshCw,
-  Square,
-  Star,
-  X,
-} from "lucide-react";
-import {
-  languageOptions,
-  getLanguageLabel,
-} from "../lib/models";
-import { LanguageSelector } from "./LanguageSelector";
-import type { TranslationPanelState, FavoritePair, LanguageCode } from "../lib/types";
+import { ArrowLeftRight, Copy, Eraser, Play, RefreshCw, Square, Star, X } from 'lucide-react'
+import { getLanguageLabel } from '../lib/models'
+import { LanguageSelector } from './LanguageSelector'
+import type { TranslationPanelState, FavoritePair, LanguageCode } from '../lib/types'
 
 interface Props {
-  panel: TranslationPanelState;
-  onChange: (panel: TranslationPanelState) => void;
-  onTranslate: () => void;
-  onCancel: () => void;
-  onDelete: () => void;
-  canDelete: boolean;
-  favoritePairs: FavoritePair[];
-  onToggleFavorite: (source: LanguageCode, target: LanguageCode) => void;
+  panel: TranslationPanelState
+  onChange: (panel: TranslationPanelState) => void
+  onTranslate: () => void
+  onCancel: () => void
+  onDelete: () => void
+  canDelete: boolean
+  favoritePairs: FavoritePair[]
+  onToggleFavorite: (source: LanguageCode, target: LanguageCode) => void
 }
-
 
 export function TranslationPanel({
   panel,
@@ -38,38 +24,38 @@ export function TranslationPanel({
   favoritePairs,
   onToggleFavorite,
 }: Props) {
-  const isTranslating = panel.status === "translating";
+  const isTranslating = panel.status === 'translating'
 
   function patch(next: Partial<TranslationPanelState>) {
-    onChange({ ...panel, ...next });
+    onChange({ ...panel, ...next })
   }
 
   function swapLanguages() {
-    if (panel.sourceLanguage === "auto") {
-      patch({ sourceLanguage: panel.targetLanguage, targetLanguage: "en" });
-      return;
+    if (panel.sourceLanguage === 'auto') {
+      patch({ sourceLanguage: panel.targetLanguage, targetLanguage: 'en' })
+      return
     }
     patch({
       sourceLanguage: panel.targetLanguage,
       targetLanguage: panel.sourceLanguage,
       input: panel.output || panel.input,
-      output: "",
-      status: "idle",
+      output: '',
+      status: 'idle',
       error: undefined,
-    });
+    })
   }
 
   async function copyOutput() {
     if (panel.output) {
-      await navigator.clipboard.writeText(panel.output);
+      await navigator.clipboard.writeText(panel.output)
     }
   }
 
   const isFavorite = favoritePairs.some(
     (p) => p.sourceLanguage === panel.sourceLanguage && p.targetLanguage === panel.targetLanguage
-  );
+  )
 
-  const MAX_CHARS = 5000;
+  const MAX_CHARS = 5000
 
   return (
     <article className="translation-panel">
@@ -90,22 +76,27 @@ export function TranslationPanel({
       <div className="lang-selector-row">
         <button
           type="button"
-          className={`favorite-star-btn ${isFavorite ? "active" : ""}`}
+          className={`favorite-star-btn ${isFavorite ? 'active' : ''}`}
           onClick={() => onToggleFavorite(panel.sourceLanguage, panel.targetLanguage)}
-          title={isFavorite ? "取消收藏此組合" : "收藏此組合"}
+          title={isFavorite ? '取消收藏此組合' : '收藏此組合'}
         >
-          <Star size={13} fill={isFavorite ? "var(--accent-color)" : "none"} aria-hidden="true" />
+          <Star size={13} fill={isFavorite ? 'var(--accent-color)' : 'none'} aria-hidden="true" />
         </button>
 
         <LanguageSelector
           value={panel.sourceLanguage}
           onChange={(code) => patch({ sourceLanguage: code })}
         />
-        
-        <button type="button" className="swap-button-circle" onClick={swapLanguages} title="交換語言">
+
+        <button
+          type="button"
+          className="swap-button-circle"
+          onClick={swapLanguages}
+          title="交換語言"
+        >
           <ArrowLeftRight size={15} aria-hidden="true" />
         </button>
-        
+
         <LanguageSelector
           value={panel.targetLanguage}
           onChange={(code) => patch({ targetLanguage: code })}
@@ -120,28 +111,27 @@ export function TranslationPanel({
           {favoritePairs.map((pair) => {
             const isCurrent =
               pair.sourceLanguage === panel.sourceLanguage &&
-              pair.targetLanguage === panel.targetLanguage;
+              pair.targetLanguage === panel.targetLanguage
             return (
               <button
                 type="button"
                 key={pair.id}
-                className={`favorite-chip ${isCurrent ? "active" : ""}`}
+                className={`favorite-chip ${isCurrent ? 'active' : ''}`}
                 onClick={() =>
                   patch({
                     sourceLanguage: pair.sourceLanguage,
                     targetLanguage: pair.targetLanguage,
-                    status: "idle",
+                    status: 'idle',
                     error: undefined,
                   })
                 }
               >
                 {getLanguageLabel(pair.sourceLanguage)} → {getLanguageLabel(pair.targetLanguage)}
               </button>
-            );
+            )
           })}
         </div>
       </div>
-
 
       {/* 3. Main Editors Split Area */}
       <div className="panel-split">
@@ -152,15 +142,23 @@ export function TranslationPanel({
             value={panel.input}
             maxLength={MAX_CHARS}
             placeholder="貼上或輸入要翻譯的內容..."
-            onChange={(event) => patch({ input: event.target.value, status: "idle", error: undefined })}
+            onChange={(event) =>
+              patch({ input: event.target.value, status: 'idle', error: undefined })
+            }
           />
-          
+
           <div className="pane-footer">
-            <span className={`word-count ${panel.input.length >= MAX_CHARS ? "limit-reached" : ""}`}>
+            <span
+              className={`word-count ${panel.input.length >= MAX_CHARS ? 'limit-reached' : ''}`}
+            >
               {panel.input.length} / {MAX_CHARS} 字
             </span>
             <div className="actions">
-              <button type="button" className="action-btn-text" onClick={() => patch({ input: "", output: "", status: "idle", error: undefined })}>
+              <button
+                type="button"
+                className="action-btn-text"
+                onClick={() => patch({ input: '', output: '', status: 'idle', error: undefined })}
+              >
                 <Eraser size={14} aria-hidden="true" />
                 清空
               </button>
@@ -169,25 +167,32 @@ export function TranslationPanel({
         </div>
 
         {/* Right Side: Output Textarea */}
-        <div className={`editor-pane output-pane ${isTranslating ? "translating-pulse" : ""}`}>
+        <div className={`editor-pane output-pane ${isTranslating ? 'translating-pulse' : ''}`}>
           <span className="pane-tag">譯文</span>
-          <textarea 
-            value={panel.output} 
-            placeholder={isTranslating ? "正在翻譯中..." : "翻譯結果會出現在這裡..."} 
-            readOnly 
+          <textarea
+            value={panel.output}
+            placeholder={isTranslating ? '正在翻譯中...' : '翻譯結果會出現在這裡...'}
+            readOnly
           />
-          
+
           {panel.error && <div className="panel-error-inline">{panel.error}</div>}
 
           <div className="pane-footer">
             <span className="word-count status-indicator">
-              {panel.status === "translating" && <span className="status-dot loading">翻譯中...</span>}
-              {panel.status === "done" && <span className="status-dot success">已就緒</span>}
-              {panel.status === "error" && <span className="status-dot error">翻譯出錯</span>}
-              {panel.status === "idle" && <span className="status-dot">待翻譯</span>}
+              {panel.status === 'translating' && (
+                <span className="status-dot loading">翻譯中...</span>
+              )}
+              {panel.status === 'done' && <span className="status-dot success">已就緒</span>}
+              {panel.status === 'error' && <span className="status-dot error">翻譯出錯</span>}
+              {panel.status === 'idle' && <span className="status-dot">待翻譯</span>}
             </span>
             <div className="actions">
-              <button type="button" className="action-btn-text" onClick={copyOutput} disabled={!panel.output}>
+              <button
+                type="button"
+                className="action-btn-text"
+                onClick={copyOutput}
+                disabled={!panel.output}
+              >
                 <Copy size={13} aria-hidden="true" />
                 複製譯文
               </button>
@@ -197,8 +202,17 @@ export function TranslationPanel({
                   取消
                 </button>
               ) : (
-                <button type="button" className="action-btn-text accent" onClick={onTranslate} disabled={!panel.input.trim()}>
-                  {panel.status === "done" ? <RefreshCw size={13} aria-hidden="true" /> : <Play size={13} aria-hidden="true" />}
+                <button
+                  type="button"
+                  className="action-btn-text accent"
+                  onClick={onTranslate}
+                  disabled={!panel.input.trim()}
+                >
+                  {panel.status === 'done' ? (
+                    <RefreshCw size={13} aria-hidden="true" />
+                  ) : (
+                    <Play size={13} aria-hidden="true" />
+                  )}
                   翻譯
                 </button>
               )}
@@ -207,9 +221,5 @@ export function TranslationPanel({
         </div>
       </div>
     </article>
-  );
+  )
 }
-
-
-
-
