@@ -16,7 +16,7 @@
   --danger-color: #9f1239;
   --danger-hover: #881337;
   --success-color: #166534;
-  
+
   color: var(--text-primary);
   background: var(--bg-primary);
   font-synthesis: none;
@@ -51,7 +51,14 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
   background-color: var(--bg-primary);
 }
 
@@ -228,7 +235,10 @@ button:disabled {
 }
 
 .shortcut-key {
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
   font-size: 9px;
   font-weight: 500;
   background: var(--bg-tertiary);
@@ -637,7 +647,6 @@ select:focus {
   border-color: rgba(159, 18, 57, 0.2);
 }
 
-
 /* Seamless Integrated Language selector row */
 .lang-selector-row {
   display: grid;
@@ -674,7 +683,6 @@ select:focus {
   white-space: nowrap;
   overflow: hidden;
 }
-
 
 .custom-select-trigger:hover {
   color: var(--accent-color);
@@ -745,7 +753,6 @@ select:focus {
   color: var(--text-secondary);
   text-align: center;
 }
-
 
 .swap-button-circle {
   width: 32px;
@@ -938,9 +945,18 @@ textarea::placeholder {
 }
 
 @keyframes char-limit-shake {
-  0%, 100% { transform: translateX(0); }
-  20%, 60% { transform: translateX(-2px); }
-  40%, 80% { transform: translateX(2px); }
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20%,
+  60% {
+    transform: translateX(-2px);
+  }
+  40%,
+  80% {
+    transform: translateX(2px);
+  }
 }
 
 .actions {
@@ -1019,7 +1035,7 @@ textarea::placeholder {
 }
 
 .status-dot::before {
-  content: "";
+  content: '';
   display: inline-block;
   width: 6px;
   height: 6px;
@@ -1041,8 +1057,15 @@ textarea::placeholder {
 }
 
 @keyframes status-pulse {
-  0%, 100% { opacity: 0.4; transform: scale(0.9); }
-  50% { opacity: 1; transform: scale(1.1); }
+  0%,
+  100% {
+    opacity: 0.4;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
 }
 
 .translating-pulse textarea {
@@ -1051,8 +1074,13 @@ textarea::placeholder {
 }
 
 @keyframes textarea-pulse {
-  0%, 100% { opacity: 0.5; }
-  50% { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 .panel-error-inline {
@@ -1123,7 +1151,7 @@ textarea::placeholder {
   .panel-split {
     grid-template-columns: 1fr;
   }
-  
+
   .editor-pane.input-pane {
     border-right: none;
     border-bottom: 1px solid var(--border-color);
@@ -1137,7 +1165,7 @@ textarea::placeholder {
     gap: 14px;
     padding: 16px;
   }
-  
+
   .navbar-actions {
     display: flex;
     justify-content: flex-end;
@@ -1153,18 +1181,15 @@ textarea::placeholder {
     display: flex;
     flex-direction: column;
   }
-  
+
   .pane-footer {
     flex-direction: column;
     align-items: stretch;
     gap: 12px;
   }
-  
+
   .actions {
     width: 100%;
     justify-content: flex-end;
   }
 }
-
-
-
