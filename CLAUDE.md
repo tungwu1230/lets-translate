@@ -39,4 +39,25 @@ React 19 + Vite + TypeScript + Tailwind single-page BYOK translation app ("Let's
 
 ## Testing
 
-Vitest + jsdom + Testing Library (`vitest.config.ts`, setup in `src/test/setup.ts`). Existing tests cover the pure logic in `src/lib/` (prompt building, request builders, storage, cost).
+Vitest + jsdom + Testing Library (`vitest.config.ts`, setup in `src/test/setup.ts`). Existing tests cover the pure logic in `src/lib/` (prompt building, request builders, storage, cost) and custom hooks in `src/hooks/`. Test files are excluded from `tsconfig.app.json` so they don't break the production build.
+
+## Versioning
+
+This project uses **Semantic Versioning** (`MAJOR.MINOR.PATCH`). Current version: **1.0.0** (set 2026-06-29).
+
+- `MAJOR` — breaking changes (e.g. localStorage schema change, removed provider)
+- `MINOR` — new user-facing features (e.g. new provider, new translation mode)
+- `PATCH` — bug fixes and minor adjustments
+
+All notable changes are recorded in `CHANGELOG.md`. When bumping a version, update both `package.json` and `CHANGELOG.md`. Write CHANGELOG entries at the **feature level** (what the user gains), not at the implementation level.
+
+## Current feature set (v1.0.0)
+
+The app is fully functional and deployed on Vercel. Users can:
+- Set their own API keys (BYOK) in Settings and translate immediately
+- Use OpenAI, Google Gemini, or any custom OpenAI-compatible endpoint
+- Open multiple translation panels side-by-side
+- Toggle streaming mode for real-time output
+- Save favourite language pairs
+- Browse full translation history (stored locally in IndexedDB)
+- Add custom languages beyond the built-in list
