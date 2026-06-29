@@ -1,4 +1,6 @@
 import { KeyRound, ShieldCheck, X } from 'lucide-react'
+import { useState } from 'react'
+import { APP_VERSION, CHANGELOG } from '../constants/changelog'
 import { modelOptions, modeOptions, toneOptions } from '../lib/models'
 import { maskApiKey } from '../lib/storage'
 import type { ProviderId, ProviderSettings, TranslationMode, TranslationTone } from '../lib/types'
@@ -16,6 +18,7 @@ const providers: Array<{ id: ProviderId; label: string }> = [
 ]
 
 export function ProviderSettingsPanel({ settings, onChange, onClose }: Props) {
+  const [showChangelog, setShowChangelog] = useState(false)
   const activeModels = modelOptions.filter((model) => model.provider === settings.provider)
   const activeKey = settings.apiKeys[settings.provider]
   const activeModelId = settings.model[settings.provider]
@@ -236,6 +239,38 @@ export function ProviderSettingsPanel({ settings, onChange, onClose }: Props) {
             />
             <span>啟用開發人員模式 (顯示詳細的 Token 消耗、翻譯時間與估算花費)</span>
           </label>
+        </div>
+
+        {/* Section 6: About */}
+        <div className="settings-about">
+          <div className="settings-about-row">
+            <span className="settings-about-version">Let's Translate v{APP_VERSION}</span>
+            <button
+              type="button"
+              className="settings-about-toggle"
+              onClick={() => setShowChangelog((prev) => !prev)}
+            >
+              {showChangelog ? '收起' : '更新日誌'}
+            </button>
+          </div>
+
+          {showChangelog && (
+            <div className="changelog-list">
+              {CHANGELOG.map((release) => (
+                <div key={release.version} className="changelog-release">
+                  <div className="changelog-release-header">
+                    v{release.version}
+                    <span className="changelog-release-date">{release.date}</span>
+                  </div>
+                  <ul className="changelog-features">
+                    {release.features.map((feature, i) => (
+                      <li key={i}>{feature}</li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </section>
