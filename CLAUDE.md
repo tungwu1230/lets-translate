@@ -49,7 +49,15 @@ This project uses **Semantic Versioning** (`MAJOR.MINOR.PATCH`). Current version
 - `MINOR` — new user-facing features (e.g. new provider, new translation mode)
 - `PATCH` — bug fixes and minor adjustments
 
-All notable changes are recorded in `CHANGELOG.md`. When bumping a version, update both `package.json` and `CHANGELOG.md`. Write CHANGELOG entries at the **feature level** (what the user gains), not at the implementation level.
+### Version update workflow
+
+When releasing a new version, update these three files:
+
+1. **`package.json`** — bump `"version"` field
+2. **`src/constants/changelog.ts`** — prepend a new entry to the `CHANGELOG` array (and update `APP_VERSION` to match)
+3. **`CHANGELOG.md`** — add the same release under a new `## [x.y.z] - YYYY-MM-DD` heading
+
+Write all entries at the **feature level** (what the user gains), not at the implementation level. Commit with a message like `chore: bump version to x.y.z`.
 
 ## Current feature set (v1.0.0)
 
